@@ -12,7 +12,7 @@ jobs:
     steps:
       # Checkout the repository
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       
       # Zip the contents or specified directory of the repo, excluding specific XML files
       - name: Zip XRNX Package
