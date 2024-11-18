@@ -8,32 +8,33 @@ on:
       
 permissions:
   contents: write
-  
 
 jobs:
   package-and-release:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v4
       
-      # Zip the contents or specified directory of the repo, excluding specific XML files
+      - name: List directory contents before zip
+        run: ls -la
+      
       - name: Zip XRNX Package
         run: |
-          zip -r com.startscreem.breakpal_V0.2.xrnx \
+          zip -r com.startscreem.breakpal_V0.2.xrnx . \
             -x "*.git*" "*.github*" \
             "preferences.xml" \
             "preferences_deviceLoaders.xml" \
             "preferences_midigen.xml" \
             "preferences_pluginLoaders.xml" \
             "preferencesDynamicView.xml"
+        
+      - name: List directory contents after zip
+        run: ls -la
       
-      # Dynamically generate a tag name and set it as an environment variable
       - name: Generate Tag Name
         run: echo "TAG_NAME=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
       
-      # Create a tag with the generated tag name
       - name: Create and Push Tag
         run: |
           git config --local user.email "action@github.com"
@@ -43,25 +44,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      # Create a GitHub release using the generated tag name
-      - name: Create GitHub Release
+      - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ env.TAG_NAME }}
-          release_name: Release ${{ env.TAG_NAME }}
+          name: Release ${{ env.TAG_NAME }}
           draft: false
           prerelease: false
-      
-      # Upload the XRNX file to the GitHub release
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
+          files: ./com.startscreem.breakpal_V0.2.xrnx
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./com.startscreem.breakpal_V0.2.xrnx
-          asset_name: com.startscreem.breakpal_V0.2.xrnx
-          asset_content_type: application/octet-stream
