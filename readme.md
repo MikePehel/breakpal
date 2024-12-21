@@ -2,6 +2,8 @@
 
 BreakPal (Breakbeat Palette) is a Renoise tool designed to transform a source phrase into a comprehensive library of chops and phrases, enabling rapid song construction through automated pattern generation and manipulation.
 
+Special shout out to esaruoho(https://github.com/esaruoho) and erlsh(https://github.com/dethine) from the TRACKERCORPS and Renoise Discord servers for their inspiration and feedback!
+
 ## Features
 
 ### Core Functions
