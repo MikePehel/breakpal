@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <RenoiseScriptingTool doc_version="0">
-  <Name>Regenerate</Name>
+  <Name>BreakPal</Name>
   <Id>com.startscreem.breakpal</Id>
   <Version>1.0</Version>
   <ApiVersion>6.1</ApiVersion>

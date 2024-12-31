@@ -10,8 +10,11 @@ local extras = require("extras")
 local multis = require("multis")
 local beats = require("beats")
 local euclideans = require("euclideans")
+local syntax = require("syntax")
+local breakpoints = require("breakpoints")
 
 local dialog = nil  -- Rename from dialog to main_dialog for clarity
+
 
 local function reopen_main_dialog()
     if not dialog or not dialog.visible then
@@ -282,6 +285,160 @@ function rollers.show_alternating_patterns_dialog(phrases)
     
     renoise.app():show_custom_dialog("Alternating Patterns Phrases", dialog_content)
 end
+
+
+
+local function create_symbol_row(vb, symbol, label_text)
+  return vb:column {
+      width = 90,
+      vb:text {
+          text = symbol,
+          font = "bold"
+      },
+      vb:row {
+          vb:text {
+              text = label_text or ""
+          }
+      }
+  }
+end
+
+
+local function create_symbol_editor_dialog()
+  local vb = renoise.ViewBuilder()
+  local symbols = {"U", "V", "W", "X", "Y", "Z"}
+  local current_symbol_index = 0
+
+  -- Get current break sets
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  local saved_labels = labeler.saved_labels
+  
+  -- Only proceed with formatting if we have phrases
+  local formatted_labels = {}
+  if #instrument.phrases > 0 then
+      local original_phrase = instrument.phrases[1]
+      --local break_sets = breakpoints.create_break_patterns(instrument, original_phrase, saved_labels)
+      --formatted_labels = syntax.prepare_symbol_labels(break_sets, saved_labels)
+  end
+
+  local symbol_editor_content = vb:column {
+      vb:column {
+          vb:row {
+              vb:text {
+                  text = "Symbols",
+                  font = "big",
+              }
+          },
+          vb:space { height = 10 },
+          vb:row {
+              id = "symbols",
+              create_symbol_row(vb, "A", formatted_labels["A"]),
+              create_symbol_row(vb, "B", formatted_labels["B"]),
+              create_symbol_row(vb, "C", formatted_labels["C"]),
+              create_symbol_row(vb, "D", formatted_labels["D"]),
+              create_symbol_row(vb, "E", formatted_labels["E"])
+          }
+      },
+      
+      vb:space { height = 10 },
+
+      margin = 25,
+      spacing = 5,
+      
+      vb:column {
+          margin = 5,
+          style = "group",
+          vb:text {
+              text = "Break String",
+              font = "big",
+          },
+          vb:space { height = 10 },
+          vb:textfield {
+              id = "break_string",
+              width = 450,
+              height = 25
+          }
+      },
+      
+      vb:space { height = 10 },
+      
+      vb:column {
+          vb:text {
+              text = "Composite Symbols",
+              font = "big",
+          },
+          vb:space { height = 10 },
+          vb:column {
+              id = "composite_symbols",
+              style = "group"
+          },
+          vb:button {
+              id = "add_button",
+              text = "+",
+              width = 25,
+              height = 25,
+              notifier = function()
+                  if current_symbol_index < #symbols then
+                      current_symbol_index = current_symbol_index + 1
+                      add_symbol_row(symbols[current_symbol_index])
+                      update_add_button()
+                  end
+                  
+                  if current_symbol_index > #symbols then
+                      renoise.app():show_status("You've reached the maximum number of Composite Symbols!")
+                  end
+              end
+          }
+      },
+      
+      vb:space { height = 10 },
+      
+      vb:horizontal_aligner {
+          mode = "justify",
+          vb:column {
+              vb:button {
+                  text = "Commit to Phrase",
+                  width = 150,
+                  height = 30,
+                  notifier = function()
+                      commit_to_phrase(vb)
+                  end
+              },
+          },
+          vb:column {
+              vb:button {
+                  text = "Commit to Pattern",
+                  width = 150,
+                  height = 30,
+                  notifier = function()
+                      commit_to_pattern(vb)
+                  end
+              },
+          
+          
+          vb:space { height = 10 },
+          
+          vb:row {
+              vb:text {
+                  text = "Starting Pattern"
+              },
+              vb:valuebox {
+                  id = "pattern_number",
+                  min = 0,
+                  max = 999,
+                  value = 0
+              }
+          }
+          }
+      }
+  }
+  
+  return symbol_editor_content
+end
+
+
+
 
 
 
@@ -557,6 +714,28 @@ local function show_dialog()
     dialog_vb:vertical_aligner { height = 10 },
     dialog_vb:row {
       dialog_vb:text {
+        text = "Build",
+        font="big",
+        style="strong"
+      }
+    },
+    dialog_vb:vertical_aligner { height = 10 },
+    dialog_vb:row {
+      dialog_vb:button {
+        text = "Symbol Editor",
+        notifier = function()
+          local symbol_editor_content = create_symbol_editor_dialog()
+          if symbol_editor_content then
+            renoise.app():show_custom_dialog("Symbol Editor", symbol_editor_content)
+          else
+            print("Error: Symbol editor content is nil")
+          end
+        end
+      }       
+    },
+    dialog_vb:vertical_aligner { height = 10 },
+    dialog_vb:row {
+      dialog_vb:text {
         text = "Inspect",
         font="big",
         style="strong"
@@ -607,6 +786,8 @@ local function show_dialog()
       
     }
   }
+
+
 
   song.selected_instrument_observable:add_notifier(function()
     if not labeler.is_locked and dialog and dialog.visible then
