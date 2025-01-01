@@ -365,15 +365,35 @@ local function create_symbol_editor_dialog()
   local song = renoise.song()
   local instrument = song.selected_instrument
   local saved_labels = labeler.saved_labels
-  
+  local break_sets, original_phrase
+
   -- Only proceed with formatting if we have phrases
   local formatted_labels = {}
   if #instrument.phrases > 0 then
-      local original_phrase = instrument.phrases[1]
-      local break_sets = breakpoints.create_break_patterns(instrument, original_phrase, saved_labels)
+      original_phrase = instrument.phrases[1]
+      break_sets = breakpoints.create_break_patterns(instrument, original_phrase, saved_labels)
       formatted_labels = syntax.prepare_symbol_labels(break_sets, saved_labels)
   end
 
+  local function commit_to_phrase(dialog_vb)
+      local break_string = dialog_vb.views.break_string.text
+      
+      if not break_sets then
+          renoise.app():show_warning("No break sets available")
+          return
+      end
+      
+      local permutation, error = syntax.parse_break_string(break_string, #break_sets)
+      if not permutation then
+          renoise.app():show_warning("Invalid break string: " .. error)
+          return
+      end
+      
+      -- Use existing break_sets and original_phrase
+      breakpoints.sort_breaks(break_sets, original_phrase, true, permutation)
+      
+      renoise.app():show_status("Break pattern created from string: " .. break_string)
+  end
   -- Create array of valid symbol columns before building the UI
   local valid_symbol_columns = {}
   for _, symbol in ipairs({"A", "B", "C", "D", "E"}) do
@@ -455,6 +475,51 @@ local function create_symbol_editor_dialog()
         }
       },
       
+      vb:space { height = 10 },
+      
+      vb:horizontal_aligner {
+        mode = "distribute",
+        vb:column {
+          vb:button {
+              text = "Import Syntax",
+              width = 80,
+              height = 20,
+              notifier = function()
+                  commit_to_phrase(vb)
+              end
+          },
+        },
+        vb:column {
+          vb:button {
+              text = "Export Syntax",
+              width = 80,
+              height = 20,
+              notifier = function()
+                local break_string = vb.views.break_string.text
+                local composite_symbols = {}
+                
+                -- Collect composite symbol values
+                for _, symbol in ipairs(symbols) do
+                  local symbol_view = vb.views["composite_" .. symbol]
+                  if symbol_view then
+                    composite_symbols[symbol] = symbol_view.text
+                  end
+                end
+                
+                -- Show file dialog to choose save location
+                local filepath = renoise.app():prompt_for_filename_to_write("csv", "Export Syntax")
+                
+                if filepath then
+                  if not filepath:lower():match("%.csv$") then
+                    filepath = filepath .. ".csv"
+                  end
+                  syntax.export_to_csv(break_string, composite_symbols, filepath)
+                end
+              end
+            },
+        },
+      },
+
       vb:space { height = 10 },
       
       vb:horizontal_aligner {

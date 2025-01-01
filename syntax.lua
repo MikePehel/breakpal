@@ -17,6 +17,51 @@ function syntax.format_break_label(note, label)
     return string.format("%s-%s-%s", line_str, padded_label, delay_str)
 end
 
+function resolve_break_string(break_string, composite_symbols)
+    local result = ""
+    for char in break_string:gmatch(".") do
+        if composite_symbols[char] then
+            result = result .. composite_symbols[char]
+        end
+    end
+    return result
+end
+
+function syntax.parse_break_string(break_string, num_sets)
+    if not break_string or break_string == "" then
+        return nil, "Break string cannot be empty"
+    end
+
+    local permutation = {}
+    local valid_symbols = {}
+    
+    -- Dynamically build valid symbols based on number of sets
+    local symbol_list = {"A", "B", "C", "D", "E"}
+    for i = 1, num_sets do
+        valid_symbols[symbol_list[i]] = i
+    end
+    
+    -- Clean and validate string
+    break_string = break_string:upper():gsub("%s+", "")
+    
+    -- Check each character
+    for i = 1, #break_string do
+        local symbol = break_string:sub(i, i)
+        local set_index = valid_symbols[symbol]
+        
+        if not set_index then
+            -- If num_sets is 3, show "Valid symbols are A, B, C"
+            local valid_chars = table.concat(symbol_list, ", ", 1, num_sets)
+            return nil, string.format(" Syntax violation: Invalid symbol '%s' found. Valid symbols are: %s", 
+                symbol, valid_chars)
+        end
+        
+        table.insert(permutation, set_index)
+    end
+    
+    return permutation
+end
+
 -- Prepare formatted labels for symbol editor using existing break sets
 function syntax.prepare_symbol_labels(sets, saved_labels)
     local symbol_labels = {}
@@ -37,5 +82,7 @@ function syntax.prepare_symbol_labels(sets, saved_labels)
     
     return symbol_labels
 end
+
+
 
 return syntax

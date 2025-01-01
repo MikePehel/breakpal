@@ -84,7 +84,25 @@ local function calculate_set_transition(from_set, to_set)
     }
 end
 
-
+local function reset_set_timing(break_set, original_set)
+    -- Reset timing array
+    break_set.timing = {}
+    
+    -- Copy original timing values
+    for i, timing in ipairs(original_set.timing) do
+        break_set.timing[i] = {
+            instrument_value = timing.instrument_value,
+            original_distance = timing.original_distance,
+            original_delay = timing.original_delay,
+            new_distance = timing.original_distance, -- Reset to original
+            new_delay = timing.original_delay,      -- Reset to original
+            relative_line = timing.original_line,   -- Reset to original line
+            original_line = timing.original_line
+        }
+    end
+    
+    return break_set
+end
 
 
 -- Gets all the breakpoint-tagged slices and their line positions
@@ -401,17 +419,29 @@ function stitch_breaks(perm, sets, setA, setB, first_set)
     return
 end
 
-function breakpoints.sort_breaks(sets, original_phrase, is_string)
-
+function breakpoints.sort_breaks(sets, original_phrase, is_string, string_permutation)
     local set_count = #sets
+
+    --    local function get_fresh_set(set_index)
+    --      return duplicator.deep_copy(original_sets[set_index])
+    --    end
 
     print("SET COUNT")
     print(set_count)
 
     local permutations = {}
+
+    local used_sets = {}
     
     if is_string then
-        print("FEED IN STRING FROM SYNTAX HERE")
+        if not string_permutation then
+            print("Error: No string permutation provided")
+            return
+        end
+        -- Create a single-element array containing the string permutation
+        permutations = {string_permutation}
+        print("Using string permutation:")
+        print(table.concat(string_permutation, "-"))
     else
         permutations = generate_permutations(set_count)
     end
@@ -433,32 +463,52 @@ function breakpoints.sort_breaks(sets, original_phrase, is_string)
     print(#permutations)
     for _, perm in ipairs(permutations) do
         local new_set = {timing = {}}
-        local break_sets = duplicator.deep_copy(sets)
-        print(table.concat(perm, "  "))
-        print(perm[_])
-        for i, set in ipairs(perm) do
-            print(set)
+        local process_success = true
+        
+        print("Processing permutation:", table.concat(perm, "  "))
+        
+        for i, set_index in ipairs(perm) do
+            if not process_success then
+                break
+            end
+            
+            print(string.format("Processing set %d at position %d", set_index, i))
+            
+            -- Create a fresh copy of the set regardless of whether it's been used before
+            local current_set = duplicator.deep_copy(sets[set_index])
+            
             if i == 1 then
-                print("LESS THAN 1")
-                new_set = stitch_breaks(perm, break_sets, break_sets[perm[1]], break_sets[perm[2]], true)
-                print(new_set)
-                print(new_set.timing[1][1])
+                -- For first stitch, make fresh copy of next set too
+                local next_set = duplicator.deep_copy(sets[perm[2]])
+                print("Processing first set")
+                new_set = stitch_breaks(perm, sets, current_set, next_set, true)
+                
+                if not new_set then
+                    print("Error: stitch_breaks failed for first set")
+                    process_success = false
+                    break
+                end
                 printTable(new_set)
+                
             elseif i < #perm then
-                print("MORE THAN 1")
+                print("Processing intermediate set")
                 local starting_set = new_set
-                print("STARTING SET")
-                printTable(starting_set)
-                new_set = stitch_breaks(perm, sets, starting_set, break_sets[perm[i + 1]], false)
-            elseif i == #perm then
-                local perm_name = table.concat(perm, "-")
-                print("PERM NAME")
-                print(perm_name)
+                -- Get fresh copy of next set
+                local next_set = duplicator.deep_copy(sets[perm[i + 1]])
+                new_set = stitch_breaks(perm, sets, starting_set, next_set, false)
+                
+                if not new_set then
+                    print("Error: stitch_breaks failed for intermediate set")
+                    process_success = false
+                    break
+                end
                 printTable(new_set)
+                
+            elseif i == #perm then
+                print("Processing final set")
+                local perm_name = table.concat(perm, "-")
                 create_permutation_phrase(new_set, perm_name, original_phrase)
             end
-        
-            local new_set = {timing = {}}
         end
     end
 end
