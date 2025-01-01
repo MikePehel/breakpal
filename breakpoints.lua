@@ -90,12 +90,36 @@ end
 -- Gets all the breakpoint-tagged slices and their line positions
 local function get_breakpoint_indices(saved_labels)
     local breakpoint_indices = {}
+    local count = 0  -- Add explicit counter
+    print("\nSearching for breakpoint-tagged slices...")
+    
+    -- Get actual count of saved labels
+    local label_count = 0
+    for _ in pairs(saved_labels) do
+        label_count = label_count + 1
+    end
+    print("Saved labels structure:", label_count)
+    
     for hex_key, label_data in pairs(saved_labels) do
+        print(string.format("Checking slice %s - Breakpoint: %s", 
+            hex_key, tostring(label_data.breakpoint)))
         if label_data.breakpoint then
             local index = tonumber(hex_key, 16) - 1
             breakpoint_indices[index] = true
+            count = count + 1  -- Increment counter
+            print("Found breakpoint at index:", index)
         end
     end
+    
+    -- Print actual count instead of using #
+    print("Total breakpoints found:", count)
+    
+    -- Debug: Print all found breakpoint indices
+    print("\nBreakpoint indices found:")
+    for index, _ in pairs(breakpoint_indices) do
+        print("Index:", index)
+    end
+    
     return breakpoint_indices
 end
 
@@ -377,14 +401,21 @@ function stitch_breaks(perm, sets, setA, setB, first_set)
     return
 end
 
-function breakpoints.sort_breaks(sets, original_phrase)
+function breakpoints.sort_breaks(sets, original_phrase, is_string)
 
     local set_count = #sets
 
     print("SET COUNT")
     print(set_count)
 
-    local permutations = generate_permutations(set_count)
+    local permutations = {}
+    
+    if is_string then
+        print("FEED IN STRING FROM SYNTAX HERE")
+    else
+        permutations = generate_permutations(set_count)
+    end
+
 
     local function printTable(t, indent)
         indent = indent or ""

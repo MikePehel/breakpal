@@ -84,12 +84,11 @@ local function create_break_patterns(instrument_index)
   end
   
   local original_phrase = phrases[1]
-  local breakpoints = require("breakpoints")
   local new_phrases, new_instrument = breakpoints.create_break_patterns(instrument, original_phrase, labeler.saved_labels)
   
   if #new_phrases > 0 then
     breakpoints.show_results(new_phrases, new_instrument)
-    breakpoints.sort_breaks(new_phrases, original_phrase)
+    breakpoints.sort_breaks(new_phrases, original_phrase, false)
     renoise.app():show_status("Break patterns created successfully.")
   end
 end
@@ -288,19 +287,72 @@ end
 
 
 
-local function create_symbol_row(vb, symbol, label_text)
-  return vb:column {
-      width = 90,
-      vb:text {
-          text = symbol,
-          font = "bold"
-      },
-      vb:row {
+local function create_symbol_row(vb, symbol, labels)
+  -- Only create the column if we have labels
+  if not labels or #labels == 0 then
+      return nil
+  end
+
+  local note_rows = vb:column {
+      width = "100%",
+      margin = 10,
+      style = "panel",
+  }
+
+  -- Add symbol header
+  note_rows:add_child(
+      vb:horizontal_aligner {
+          mode = "center",
           vb:text {
-              text = label_text or ""
+              text = symbol,
+              font = "big",
+              align = "center"
           }
       }
+  )
+
+  -- Add each note in the set with spacing between notes
+  for i, label_text in ipairs(labels) do
+      note_rows:add_child(vb:row {
+          vb:text {
+              text = label_text,
+              font = "mono",
+              align = "left",
+              width = "100%"
+          }
+      })
+      
+      -- Add space between notes except after the last one
+      if i < #labels then
+          note_rows:add_child(vb:space { height = 2 })
+      end
+  end
+
+  return note_rows
+end
+
+local function add_symbol_row(vb, symbol)
+  local composite_symbols = vb.views.composite_symbols
+  local new_row = vb:row {
+      margin = 5,
+      vb:text {
+          text = symbol .. " =",
+          width = 25
+      },
+      vb:textfield {
+          id = "symbol_" .. string.lower(symbol),
+          width = 465,
+          height = 25
+      }
   }
+  composite_symbols:add_child(new_row)
+end
+
+local function update_add_button(vb, current_symbol_index, symbols)
+  local add_button = vb.views.add_button
+  if add_button then
+      add_button.visible = current_symbol_index < #symbols
+  end
 end
 
 
@@ -318,12 +370,22 @@ local function create_symbol_editor_dialog()
   local formatted_labels = {}
   if #instrument.phrases > 0 then
       local original_phrase = instrument.phrases[1]
-      --local break_sets = breakpoints.create_break_patterns(instrument, original_phrase, saved_labels)
-      --formatted_labels = syntax.prepare_symbol_labels(break_sets, saved_labels)
+      local break_sets = breakpoints.create_break_patterns(instrument, original_phrase, saved_labels)
+      formatted_labels = syntax.prepare_symbol_labels(break_sets, saved_labels)
+  end
+
+  -- Create array of valid symbol columns before building the UI
+  local valid_symbol_columns = {}
+  for _, symbol in ipairs({"A", "B", "C", "D", "E"}) do
+      local symbol_col = create_symbol_row(vb, symbol, formatted_labels[symbol])
+      if symbol_col then
+          table.insert(valid_symbol_columns, symbol_col)
+      end
   end
 
   local symbol_editor_content = vb:column {
       vb:column {
+          width = 500,
           vb:row {
               vb:text {
                   text = "Symbols",
@@ -331,13 +393,14 @@ local function create_symbol_editor_dialog()
               }
           },
           vb:space { height = 10 },
-          vb:row {
-              id = "symbols",
-              create_symbol_row(vb, "A", formatted_labels["A"]),
-              create_symbol_row(vb, "B", formatted_labels["B"]),
-              create_symbol_row(vb, "C", formatted_labels["C"]),
-              create_symbol_row(vb, "D", formatted_labels["D"]),
-              create_symbol_row(vb, "E", formatted_labels["E"])
+          vb:horizontal_aligner {
+              mode = "distribute",
+              width = "100%",
+              vb:row {
+                  id = "symbols",
+                  spacing = 5,
+                  unpack(valid_symbol_columns)
+              }
           }
       },
       
@@ -347,7 +410,7 @@ local function create_symbol_editor_dialog()
       spacing = 5,
       
       vb:column {
-          margin = 5,
+          margin =5,
           style = "group",
           vb:text {
               text = "Break String",
@@ -356,7 +419,7 @@ local function create_symbol_editor_dialog()
           vb:space { height = 10 },
           vb:textfield {
               id = "break_string",
-              width = 450,
+              width = 490,
               height = 25
           }
       },
@@ -374,22 +437,22 @@ local function create_symbol_editor_dialog()
               style = "group"
           },
           vb:button {
-              id = "add_button",
-              text = "+",
-              width = 25,
-              height = 25,
-              notifier = function()
-                  if current_symbol_index < #symbols then
-                      current_symbol_index = current_symbol_index + 1
-                      add_symbol_row(symbols[current_symbol_index])
-                      update_add_button()
-                  end
-                  
-                  if current_symbol_index > #symbols then
-                      renoise.app():show_status("You've reached the maximum number of Composite Symbols!")
-                  end
-              end
-          }
+            id = "add_button",
+            text = "+",
+            width = 25,
+            height = 25,
+            notifier = function()
+                if current_symbol_index < #symbols then
+                    current_symbol_index = current_symbol_index + 1
+                    add_symbol_row(vb, symbols[current_symbol_index])
+                    update_add_button(vb, current_symbol_index, symbols)
+                end
+                
+                if current_symbol_index > #symbols then
+                    renoise.app():show_status("You've reached the maximum number of Composite Symbols!")
+                end
+            end
+        }
       },
       
       vb:space { height = 10 },
