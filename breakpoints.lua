@@ -282,9 +282,14 @@ function create_permutation_phrase(perm, perm_name, original_phrase)
     local current_instrument = renoise.song().selected_instrument
     local new_phrase = duplicator.duplicate_phrases(current_instrument, original_phrase, 1)[1]
 
-    new_phrase.name = string.format("Break Perm %s", perm_name)
+    -- Convert numeric permutation name into letters (e.g. "1-2-3" becomes "A-B-C")
+    local letter_name = perm_name:gsub("%d", function(d)
+        return string.char(string.byte('A') + tonumber(d) - 1)
+    end)
+    
+    new_phrase.name = string.format("Break Perm %s", letter_name)
         
-        -- Clear and prepare phrase
+    -- Clear and prepare phrase
     utils.clear_phrase(new_phrase)
 
     for _, timing in ipairs(perm.timing) do
