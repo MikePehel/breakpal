@@ -9,6 +9,55 @@ local function pad_with_underscores(str, length)
     return str .. string.rep("_", length - #str)
 end
 
+
+local function escape_csv_field(field)
+    if type(field) == "string" and (field:find(',') or field:find('"')) then
+        -- Double quotes and wrap in quotes if field contains comma or quotes
+        return '"' .. field:gsub('"', '""') .. '"'
+    end
+    return tostring(field)
+end
+
+local function unescape_csv_field(field)
+    if field:sub(1,1) == '"' and field:sub(-1) == '"' then
+        -- Remove surrounding quotes and convert double quotes back to single
+        return field:sub(2, -2):gsub('""', '"')
+    end
+    return field
+end
+
+-- Add after escape functions
+local function parse_csv_line(line)
+    local fields = {}
+    local field = ""
+    local in_quotes = false
+    
+    local i = 1
+    while i <= #line do
+        local char = line:sub(i,i)
+        
+        if char == '"' then
+            if in_quotes and line:sub(i+1,i+1) == '"' then
+                field = field .. '"'
+                i = i + 2
+            else
+                in_quotes = not in_quotes
+                i = i + 1
+            end
+        elseif char == ',' and not in_quotes then
+            table.insert(fields, field)
+            field = ""
+            i = i + 1
+        else
+            field = field .. char
+            i = i + 1
+        end
+    end
+    
+    table.insert(fields, field)
+    return fields
+end
+
 -- Format a single break label according to the specification
 function syntax.format_break_label(note, label)
     local line_str = string.format("%02d", note.line)
@@ -124,52 +173,65 @@ function syntax.prepare_symbol_labels(sets, saved_labels)
     return symbol_labels
 end
 
-function syntax.export_syntax()
-    local filename = get_current_sample_name() .. "_syntax.csv"
-    local filepath = renoise.app():prompt_for_filename_to_write("csv", "Export Labels")
+function syntax.export_syntax(dialog_vb)
+    -- Get break string and composite symbols from dialog
+    local break_string = dialog_vb.views.break_string.text
+    local composite_symbols = {}
+    local symbols = {"U", "V", "W", "X", "Y", "Z"}
     
+    -- Collect composite symbol definitions
+    for _, symbol in ipairs(symbols) do
+        local view_id = "symbol_" .. string.lower(symbol)
+        local symbol_view = dialog_vb.views[view_id]
+        if symbol_view and symbol_view.text ~= "" then
+            composite_symbols[symbol] = symbol_view.text
+        end
+    end
+
+    -- Prompt for save location
+    local filepath = renoise.app():prompt_for_filename_to_write("csv", "Export Break Syntax")
     if not filepath or filepath == "" then return end
     
     if not filepath:lower():match("%.csv$") then
         filepath = filepath .. ".csv"
     end
     
+    -- Try to open file for writing
     local file, err = io.open(filepath, "w")
-    if not file then    
+    if not file then
         renoise.app():show_error("Unable to open file for writing: " .. tostring(err))
         return
     end
     
-    file:write("Index,Break String,U,V,W,X,Y,Z\n")
+    -- Write header
+    file:write("Break String,U,V,W,X,Y,Z\n")
     
-    for hex_key, data in pairs(labeler.saved_labels) do
-        local values = {
-            hex_key,
-            data.break_string or "",
-            data.u or "",
-            data.v or "",
-            data.w or "",
-            data.x or "",
-            data.y or "",
-            data.z or ""
-        }
-        
-        -- Escape each field
-        for i, value in ipairs(values) do
-            values[i] = escape_csv_field(value)
-        end
-        
-        file:write(table.concat(values, ",") .. "\n")
+    -- Write data row
+    local values = {
+        break_string or "",
+        composite_symbols["U"] or "",
+        composite_symbols["V"] or "",
+        composite_symbols["W"] or "",
+        composite_symbols["X"] or "",
+        composite_symbols["Y"] or "",
+        composite_symbols["Z"] or ""
+    }
+    
+    -- Escape each field
+    for i, value in ipairs(values) do
+        values[i] = escape_csv_field(value)
     end
     
-    file:close()
-    renoise.app():show_status("Syntax exported to " .. filepath)
-  end
-
-
-function syntax.import_labels()
+    -- Write the row
+    file:write(table.concat(values, ",") .. "\n")
     
-    local filepath = renoise.app():prompt_for_filename_to_read({"*.csv"}, "Import Syntax")
+    file:close()
+    renoise.app():show_status("Break syntax exported to " .. filepath)
+end
+
+
+function syntax.import_syntax(dialog_vb)
+    local filepath = renoise.app():prompt_for_filename_to_read({"*.csv"}, "Import Break Syntax")
     
     if not filepath or filepath == "" then return end
     
@@ -179,77 +241,49 @@ function syntax.import_labels()
         return
     end
     
+    -- Read and verify header
     local header = file:read()
-    if not header or not header:lower():match("index,break string,u,v,w,x,y,z") then
+    if not header or not header:lower():match("break string,u,v,w,x,y,z") then
         renoise.app():show_error("Invalid CSV format: Missing or incorrect header")
         file:close()
         return
     end
-  
-    local new_syntax = {}
-    local line_number = 1
-  
-    for line in file:lines() do
-        line_number = line_number + 1
-        local fields = parse_csv_line(line)
-        
-        if #fields ~= 8 then
-            renoise.app():show_error(string.format(
-                "Invalid CSV format at line %d: Expected 8 fields, got %d", 
-                line_number, #fields))
-            file:close()
-            return
-        end
-        
-        local index = fields[1]
-        if not index:match("^%x%x$") then
-            renoise.app():show_error(string.format(
-                "Invalid index format at line %d: %s", 
-                line_number, index))
-            file:close()
-            return
-        end
-        
-        local function str_to_bool(str)
-            return str:lower() == "true"
-        end
-        
-        new_syntax[index] = {
-          break_string = unescape_csv_field(fields[2]),
-          U = unescape_csv_field(fields[3]),
-          V = unescape_csv_field(fields[4]),
-          W = unescape_csv_field(fields[5]),
-          X = unescape_csv_field(fields[6]),
-          Y = unescape_csv_field(fields[7]),
-          Z = unescape_csv_field(fields[8]),
 
-        }
+    -- Read the data line
+    local data_line = file:read()
+    if not data_line then
+        renoise.app():show_error("No data found in file")
+        file:close()
+        return
     end
-    
+
+    -- Parse the CSV line
+    local fields = parse_csv_line(data_line)
+    if #fields ~= 7 then  -- Break string + 6 composite symbols
+        renoise.app():show_error(string.format(
+            "Invalid CSV format: Expected 7 fields, got %d", #fields))
+        file:close()
+        return
+    end
+
+    -- Update dialog views with imported data
+    local break_string_view = dialog_vb.views.break_string
+    if break_string_view then
+        break_string_view.text = unescape_csv_field(fields[1])
+    end
+
+    -- Update composite symbol fields
+    local symbols = {"U", "V", "W", "X", "Y", "Z"}
+    for i, symbol in ipairs(symbols) do
+        local view_id = "symbol_" .. string.lower(symbol)
+        local symbol_view = dialog_vb.views[view_id]
+        if symbol_view then
+            symbol_view.text = unescape_csv_field(fields[i + 1]) -- +1 because break string is first
+        end
+    end
+
     file:close()
-  
-    -- Get current instrument index
-    local current_index = renoise.song().selected_instrument_index
-    
-    -- Update both global and instrument-specific labels
-    labeler.saved_labels = syntax
-    labeler.saved_labels_by_instrument[current_index] = table.copy(new_labels)
-    
-    -- Set lock state after label update
-    labeler.locked_instrument_index = current_index
-    labeler.is_locked = true
-    
-    -- Trigger observables after all state updates
-    labeler.saved_labels_observable.value = not labeler.saved_labels_observable.value
-    labeler.lock_state_observable.value = not labeler.lock_state_observable.value
-    
-    renoise.app():show_status("Syntax imported from " .. filepath)
-    
-    -- Update UI after all state changes
-    if dialog and dialog.visible then
-        dialog:close()
-        labeler.create_ui()
-    end
+    renoise.app():show_status("Break syntax imported from " .. filepath)
 end
 
 

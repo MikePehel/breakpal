@@ -504,7 +504,7 @@ local function create_symbol_editor_dialog()
               width = 80,
               height = 20,
               notifier = function()
-                  commit_to_phrase(vb)
+                syntax.import_syntax(vb)
               end
           },
         },
@@ -514,7 +514,7 @@ local function create_symbol_editor_dialog()
               width = 80,
               height = 20,
               notifier = function()
-                  commit_to_phrase(vb)
+                syntax.export_syntax(vb)
               end
           },
         },
