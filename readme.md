@@ -85,6 +85,33 @@ Special shout out to esaruoho(https://github.com/esaruoho) and erlsh(https://git
    - Maintains consistent naming conventions for easy navigation
    - Preserves volume relationships between shuffle and ghost hits
 
+9. Break Pattern Symbol Editor
+   - Provides a visual interface for creating complex break patterns using symbolic notation
+   - Displays labeled sections of breaks with detailed timing information:
+      -  Line numbers and positions
+      - Sample labels and types
+      - Delay values in hexadecimal format
+   - Supports flexible pattern creation through:
+      - Base symbols (A-E) for direct break references
+      - Composite symbols (U-Z) for pattern macros
+      - Break string syntax for pattern sequencing
+   - Features comprehensive syntax tools:
+      - Pattern validation and error checking
+      - Composite symbol resolution
+      - Import/export of break patterns and macros
+   - Maintains timing relationships:
+      - Preserves original sample positions
+      - Handles delay values between sections
+      - Ensures smooth transitions between breaks
+   - Streamlines break creation workflow:
+      - Visual feedback for break composition
+      - Real-time pattern validation
+      - Direct phrase generation from break strings
+   - Supports pattern reuse through:
+      - Savable break string templates
+      - Reusable composite symbol definitions
+      - CSV import/export functionality
+
 ### Slice Labeling System
 - Comprehensive tagging system with five main flags:
   - **Breakpoint**: Marks slices that define section boundaries for break pattern generation
@@ -162,6 +189,72 @@ After labeling, use the generation buttons in this recommended order:
 - Recall labels anytime using the "Recall Labels" button
 - Import/Export labels for reuse across projects
 
+### Build Breaks
+
+#### Symbol Editor
+
+The Symbol Editor provides a powerful interface for creating break patterns using a syntax inspired by L-Systems (Lindenmayer Systems). Just as L-Systems use simple rules to generate complex visual patterns, the Symbol Editor uses a simple string-based syntax to create intricate break patterns.
+
+#### Core Concepts
+
+1. **Base Symbols (A-E)**
+   - Each base symbol represents a labeled break section from your source material
+   - Breaks are automatically identified using "Breakpoint" flags in the labeler
+   - The editor displays the contents of each break using the format: `[LINE]-[LABEL]-[DELAY]`
+   - Example: `04-KICK_-d00` represents a kick drum at line 4 with no delay
+
+2. **Composite Symbols (U-Z)**
+   - Function like production rules in L-Systems
+   - Allow you to define reusable sequences of base symbols
+   - Can contain any combination of base symbols (A-E)
+   - Useful for creating recurring patterns or variations
+
+3. **Break String Syntax**
+   - Similar to L-System axioms and production rules
+   - Combines base and composite symbols to define break patterns
+   - Read left-to-right to determine break sequence
+   - Examples:
+     - `ABCDE`: Basic sequence of all breaks in order
+     - `AABAA`: Repetition of first break with middle variation
+     - `UVWXY`: Sequence using only composite symbols
+
+#### Usage Examples
+
+1. **Basic Patterns**
+```
+Break String: ABCBA
+Result: Palindrome pattern using breaks A through C
+```
+
+2. **Composite Symbols**
+```
+U = ABC
+V = CBA
+Break String: UVUV
+Result: Alternating forward and reverse patterns
+```
+
+3. **Complex Patterns**
+```
+U = AABA
+V = CCDC
+Break String: UVVU
+Result: Nested palindrome with variations
+```
+
+#### Similar to L-Systems
+
+Just as L-Systems use:
+- **Axiom**: Initial state
+- **Production Rules**: Pattern generation rules
+- **Iterations**: Rule application
+
+The Symbol Editor uses:
+- **Break String**: Initial pattern (like axiom)
+- **Composite Symbols**: Reusable patterns (like production rules)
+- **Pattern Generation**: Converting symbols to actual breaks
+
+
 ### Inspection Tools
 
 #### Evaluate Phrase
@@ -194,7 +287,6 @@ After labeling, use the generation buttons in this recommended order:
 
 ## Upcoming Features
 - Humanize notes toggle
-- Break builder menu for multi-measure break creation
 - Refined note placement based on slice length
    - Option for best fit
    - Option for strict fit only
