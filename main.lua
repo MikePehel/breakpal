@@ -534,6 +534,7 @@ local function create_symbol_editor_dialog()
                   end
               },
           },
+          --[[
           vb:column {
               vb:button {
                   text = "Commit to Pattern",
@@ -559,6 +560,7 @@ local function create_symbol_editor_dialog()
               }
           }
           }
+          ]]
       }
   }
   
