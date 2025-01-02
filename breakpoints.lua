@@ -277,31 +277,51 @@ function generate_permutations(n)
     return result
 end
 
-function create_permutation_phrase(perm, perm_name, original_phrase)
+
+
+function create_permutation_phrase(new_set, perm_name, original_phrase)
     local song = renoise.song()
     local current_instrument = renoise.song().selected_instrument
     local new_phrase = duplicator.duplicate_phrases(current_instrument, original_phrase, 1)[1]
 
-    -- Convert numeric permutation name into letters (e.g. "1-2-3" becomes "A-B-C")
     local letter_name = perm_name:gsub("%d", function(d)
         return string.char(string.byte('A') + tonumber(d) - 1)
     end)
     
     new_phrase.name = string.format("Break Perm %s", letter_name)
+    
+    -- Calculate length based on the timing data in new_set plus final distance
+    local required_length = 0
+    if new_set.timing and #new_set.timing > 0 then
+        local last_timing = new_set.timing[#new_set.timing]
+        required_length = last_timing.relative_line
         
-    -- Clear and prepare phrase
+        -- Add lines needed for the final note's distance using same logic as calculate_set_transition
+        local lines_to_add = math.floor(last_timing.original_distance / 256)
+        required_length = required_length + lines_to_add
+    end
+    
+    if required_length > 0 then
+        new_phrase.number_of_lines = required_length
+        print(string.format("Set phrase length to %d lines", required_length))
+    else
+        new_phrase.number_of_lines = original_phrase.number_of_lines
+        print("Warning: Could not calculate permutation length, using original length")
+    end
+        
     utils.clear_phrase(new_phrase)
 
-    for _, timing in ipairs(perm.timing) do
-        local line = new_phrase:line(timing.relative_line)
-        local note_column = line:note_column(1)
-            
-        note_column.note_value = 48  -- C-4
-        note_column.instrument_value = timing.instrument_value
-        note_column.delay_value = timing.new_delay
+    for _, timing in ipairs(new_set.timing) do
+        if timing.relative_line <= new_phrase.number_of_lines then
+            local line = new_phrase:line(timing.relative_line)
+            local note_column = line:note_column(1)
+                
+            note_column.note_value = 48  -- C-4
+            note_column.instrument_value = timing.instrument_value
+            note_column.delay_value = timing.new_delay
+        end
     end
 end
-
 
 function stitch_breaks(perm, sets, setA, setB, first_set)
     print("PERMUTATION")

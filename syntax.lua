@@ -124,6 +124,133 @@ function syntax.prepare_symbol_labels(sets, saved_labels)
     return symbol_labels
 end
 
+function syntax.export_syntax()
+    local filename = get_current_sample_name() .. "_syntax.csv"
+    local filepath = renoise.app():prompt_for_filename_to_write("csv", "Export Labels")
+    
+    if not filepath or filepath == "" then return end
+    
+    if not filepath:lower():match("%.csv$") then
+        filepath = filepath .. ".csv"
+    end
+    
+    local file, err = io.open(filepath, "w")
+    if not file then    
+        renoise.app():show_error("Unable to open file for writing: " .. tostring(err))
+        return
+    end
+    
+    file:write("Index,Break String,U,V,W,X,Y,Z\n")
+    
+    for hex_key, data in pairs(labeler.saved_labels) do
+        local values = {
+            hex_key,
+            data.break_string or "",
+            data.u or "",
+            data.v or "",
+            data.w or "",
+            data.x or "",
+            data.y or "",
+            data.z or ""
+        }
+        
+        -- Escape each field
+        for i, value in ipairs(values) do
+            values[i] = escape_csv_field(value)
+        end
+        
+        file:write(table.concat(values, ",") .. "\n")
+    end
+    
+    file:close()
+    renoise.app():show_status("Syntax exported to " .. filepath)
+  end
+
+
+function syntax.import_labels()
+    
+    local filepath = renoise.app():prompt_for_filename_to_read({"*.csv"}, "Import Syntax")
+    
+    if not filepath or filepath == "" then return end
+    
+    local file, err = io.open(filepath, "r")
+    if not file then
+        renoise.app():show_error("Unable to open file: " .. tostring(err))
+        return
+    end
+    
+    local header = file:read()
+    if not header or not header:lower():match("index,break string,u,v,w,x,y,z") then
+        renoise.app():show_error("Invalid CSV format: Missing or incorrect header")
+        file:close()
+        return
+    end
+  
+    local new_syntax = {}
+    local line_number = 1
+  
+    for line in file:lines() do
+        line_number = line_number + 1
+        local fields = parse_csv_line(line)
+        
+        if #fields ~= 8 then
+            renoise.app():show_error(string.format(
+                "Invalid CSV format at line %d: Expected 8 fields, got %d", 
+                line_number, #fields))
+            file:close()
+            return
+        end
+        
+        local index = fields[1]
+        if not index:match("^%x%x$") then
+            renoise.app():show_error(string.format(
+                "Invalid index format at line %d: %s", 
+                line_number, index))
+            file:close()
+            return
+        end
+        
+        local function str_to_bool(str)
+            return str:lower() == "true"
+        end
+        
+        new_syntax[index] = {
+          break_string = unescape_csv_field(fields[2]),
+          U = unescape_csv_field(fields[3]),
+          V = unescape_csv_field(fields[4]),
+          W = unescape_csv_field(fields[5]),
+          X = unescape_csv_field(fields[6]),
+          Y = unescape_csv_field(fields[7]),
+          Z = unescape_csv_field(fields[8]),
+
+        }
+    end
+    
+    file:close()
+  
+    -- Get current instrument index
+    local current_index = renoise.song().selected_instrument_index
+    
+    -- Update both global and instrument-specific labels
+    labeler.saved_labels = syntax
+    labeler.saved_labels_by_instrument[current_index] = table.copy(new_labels)
+    
+    -- Set lock state after label update
+    labeler.locked_instrument_index = current_index
+    labeler.is_locked = true
+    
+    -- Trigger observables after all state updates
+    labeler.saved_labels_observable.value = not labeler.saved_labels_observable.value
+    labeler.lock_state_observable.value = not labeler.lock_state_observable.value
+    
+    renoise.app():show_status("Syntax imported from " .. filepath)
+    
+    -- Update UI after all state changes
+    if dialog and dialog.visible then
+        dialog:close()
+        labeler.create_ui()
+    end
+end
 
 
 return syntax
