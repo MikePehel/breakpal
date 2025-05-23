@@ -12,6 +12,7 @@ local beats = require("beats")
 local euclideans = require("euclideans")
 local syntax = require("syntax")
 local breakpoints = require("breakpoints")
+local utils = require('utils')
 
 local dialog = nil  -- Rename from dialog to main_dialog for clarity
 
@@ -781,6 +782,123 @@ local function show_dialog()
         style="strong"
       }
     },
+    dialog_vb:vertical_aligner { height = 10 },
+    dialog_vb:row {
+      dialog_vb:checkbox {
+        id = "humanize_checkbox",
+        value = utils.humanize.enabled,
+        notifier = function(value)
+          utils.humanize.enabled = value
+        end
+      },
+      dialog_vb:text {
+        text = "Humanize Notes",
+        font = "normal"
+      }
+    },
+    dialog_vb:row {
+      dialog_vb:text {
+        text = "  Range:",
+        width = 50
+      },
+      dialog_vb:text {
+        text = "Min:",
+        width = 30
+      },
+      dialog_vb:valuebox {
+        id = "humanize_min",
+        min = -255,
+        max = 255,
+        value = utils.humanize.min,
+        width = 50,
+        notifier = function(value)
+          if value >= utils.humanize.max then
+            renoise.app():show_warning("Minimum value must be lower than maximum value")
+            dialog_vb.views.humanize_min.value = utils.humanize.min
+            return
+          end
+          utils.humanize.min = value
+        end
+      },
+      dialog_vb:text {
+        text = "Max:",
+        width = 30
+      },
+      dialog_vb:valuebox {
+        id = "humanize_max",
+        min = -255,
+        max = 255,
+        value = utils.humanize.max,
+        width = 50,
+        notifier = function(value)
+          if value <= utils.humanize.min then
+            renoise.app():show_warning("Maximum value must be higher than minimum value")
+            dialog_vb.views.humanize_max.value = utils.humanize.max
+            return
+          end
+          utils.humanize.max = value
+        end
+      }
+    },
+    dialog_vb:vertical_aligner { height = 5 },
+    dialog_vb:row {
+      dialog_vb:checkbox {
+        id = "decay_checkbox",
+        value = utils.decay_compensation.enabled,
+        notifier = function(value)
+          utils.decay_compensation.enabled = value
+        end
+      },
+      dialog_vb:text {
+        text = "Decay Compensation",
+        font = "normal"
+      }
+    },
+    dialog_vb:row {
+      dialog_vb:text {
+        text = "  Type:",
+        width = 50
+      },
+      dialog_vb:popup {
+        id = "decay_curve_type",
+        items = {"Exponential", "Logarithmic", "Linear"},
+        value = 1,
+        width = 90,
+        notifier = function(value)
+          local curve_types = {"exponential", "logarithmic", "linear"}
+          utils.decay_compensation.curve_type = curve_types[value]
+        end
+      },
+      dialog_vb:text {
+        text = "Offset:",
+        width = 45
+      },
+      dialog_vb:valuebox {
+        id = "decay_offset",
+        min = 0,
+        max = 16,
+        value = utils.decay_compensation.offset,
+        width = 70,
+        notifier = function(value)
+          utils.decay_compensation.offset = value
+        end
+      },
+      dialog_vb:text {
+        text = "Min Vol:",
+        width = 50
+      },
+      dialog_vb:valuebox {
+        id = "decay_min_volume",
+        min = 0,
+        max = 15,  -- Changed from 128
+        value = utils.decay_compensation.min_volume,
+        width = 45,
+        notifier = function(value)
+          utils.decay_compensation.min_volume = value
+        end
+      }
+    },
+    dialog_vb:vertical_aligner { height = 5 },
     dialog_vb:vertical_aligner { height = 10 },
     dialog_vb:row {
       spacing = 5,

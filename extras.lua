@@ -165,11 +165,15 @@ local function create_pattern_set(instrument, original_phrase, template_name, pa
             utils.clear_phrase(base_phrase)
             
             apply_pattern_with_pairs(base_phrase, pattern_variant.pattern, pair, "Roll", steps)
+            utils.humanize_phrase(base_phrase)
+            utils.apply_decay_compensation(base_phrase)
             table.insert(new_phrases, base_phrase)
             
             local divisions = {4, 6, 12, 16}
             for _, division in ipairs(divisions) do
                 local variation = create_timing_variation(instrument, base_phrase, division)
+                utils.humanize_phrase(variation)
+                utils.apply_decay_compensation(variation)
                 table.insert(new_phrases, variation)
             end
         end
@@ -183,11 +187,15 @@ local function create_pattern_set(instrument, original_phrase, template_name, pa
             utils.clear_phrase(base_phrase)
             
             apply_pattern_with_pairs(base_phrase, pattern_variant.pattern, pair, "Ghost", steps)
+            utils.humanize_phrase(base_phrase)
+            utils.apply_decay_compensation(base_phrase)
             table.insert(new_phrases, base_phrase)
             
             local divisions = {4, 6, 8, 12, 16}
             for _, division in ipairs(divisions) do
                 local variation = create_timing_variation(instrument, base_phrase, division)
+                utils.humanize_phrase(variation)
+                utils.apply_decay_compensation(variation)
                 table.insert(new_phrases, variation)
             end
         end

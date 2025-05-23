@@ -219,13 +219,20 @@ local function apply_beat_pattern(phrase, pattern_table, saved_labels, steps)
             end
         end
     end
- end
+    
+    -- Apply decay compensation after pattern generation
+    utils.apply_decay_compensation(phrase)
+end
 
 local function create_timing_variation(instrument, base_phrase, division)
     local new_phrase = instrument:insert_phrase_at(#instrument.phrases + 1)
     new_phrase:copy_from(base_phrase)
     new_phrase.name = string.format("%s 1/%d", base_phrase.name, division)
     new_phrase.lpb = math.ceil(base_phrase.lpb * (division / 8))
+    
+    -- Apply decay compensation to timing variations
+    utils.apply_decay_compensation(new_phrase)
+    
     return new_phrase
 end
 
@@ -263,10 +270,12 @@ function beats.create_beat_patterns(instrument, original_phrase, saved_labels)
                 utils.clear_phrase(base_phrase)
                 
                 apply_beat_pattern(base_phrase, pattern_variant.pattern, saved_labels, steps)
+                utils.humanize_phrase(base_phrase)
                 table.insert(all_phrases, base_phrase)
                 
                 for _, division in ipairs({4, 6, 12, 16}) do
                     local variation = create_timing_variation(flag_instrument, base_phrase, division)
+                    utils.humanize_phrase(variation)
                     table.insert(all_phrases, variation)
                 end
             end

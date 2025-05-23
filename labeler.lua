@@ -15,6 +15,8 @@ labeler.saved_labels = {}
 labeler.saved_labels_by_instrument = {}
 labeler.saved_labels_observable = renoise.Document.ObservableBoolean(false)
 labeler.lock_state_observable = renoise.Document.ObservableBoolean(false)
+labeler.humanize_enabled = false
+labeler.humanize_observable = renoise.Document.ObservableBoolean(false)
 
 function labeler.update_lock()
   if dialog and dialog.visible then

@@ -321,6 +321,12 @@ function create_permutation_phrase(new_set, perm_name, original_phrase)
             note_column.delay_value = timing.new_delay
         end
     end
+    
+    -- Apply humanization to the breakpoint phrase
+    utils.humanize_phrase(new_phrase)
+    
+    -- Apply decay compensation to the breakpoint phrase
+    utils.apply_decay_compensation(new_phrase)
 end
 
 function stitch_breaks(perm, sets, setA, setB, first_set)

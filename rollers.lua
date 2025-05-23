@@ -68,7 +68,8 @@ function rollers.create_beat_divisions_on_patterns(instrument, source_phrase_ind
         local multiplier = beat_division == 6 and 0.75 or (beat_division / 8)
         new_phrase.lpb = math.ceil(source_phrase.lpb * multiplier)
     end
-
+    utils.humanize_phrase(new_phrase)
+    utils.apply_decay_compensation(new_phrase)
     return new_phrase
 end
 
@@ -125,13 +126,15 @@ function rollers.create_alternating_patterns(instrument, original_phrase, saved_
                     rollers.add_alternating_notes(new_variation_phrase, lpb, perm)
                 end
                 
-    
-    
+                utils.humanize_phrase(new_variation_phrase)
+                utils.apply_decay_compensation(new_variation_phrase)
                 table.insert(new_phrases, new_variation_phrase)
 
                 local ext_phrase = rollers.create_extended_phrase(new_instrument, new_variation_phrase)
                 if ext_phrase then
                     print(ext_phrase)
+                    utils.humanize_phrase(ext_phrase)
+                    utils.apply_decay_compensation(ext_phrase)
                     table.insert(new_phrases, ext_phrase)
     
                     rollers.create_curve_phrases(new_instrument, ext_phrase, new_phrases, label)
@@ -203,6 +206,8 @@ function rollers.create_basic_roll_phrase(instrument, original_phrase, slice, lp
     local original_note = rollers.find_original_note(original_phrase, slice.index)
     if original_note then
         rollers.add_basic_roll_notes(basic_phrase, original_note, slice.index, lpb)
+        utils.humanize_phrase(basic_phrase)
+        utils.apply_decay_compensation(basic_phrase)
         return basic_phrase
     else
         print("Warning: No note found for slice index", slice.index, "Label:", slice.label)
@@ -251,6 +256,8 @@ function rollers.create_2x_phrase(instrument, basic_phrase)
     if basic_2x_phrase and utils.multiply_phrase_length then
         basic_2x_phrase = utils.multiply_phrase_length(basic_2x_phrase, 2)
         basic_2x_phrase.name = string.format("%s (2x)", basic_phrase.name)
+        utils.humanize_phrase(basic_2x_phrase)
+        utils.apply_decay_compensation(basic_2x_phrase)
         return basic_2x_phrase
     else
         print("Warning: Failed to create 2x version of basic phrase or multiply_phrase_length function not found")
@@ -284,6 +291,8 @@ function rollers.create_curve_phrase(instrument, basic_2x_phrase, curve_type, in
         local volume_curve = utils.generate_curve(curve_type, start_volume, end_volume, 4)
 
         rollers.apply_volume_curve(curve_phrase, volume_curve)
+        utils.humanize_phrase(curve_phrase)
+        utils.apply_decay_compensation(curve_phrase)
         return curve_phrase
     else
         print(string.format("Warning: Failed to create %scurve phrase for %s", inverse and "inverse " or "", curve_type))
@@ -317,6 +326,8 @@ function rollers.create_augmented_phrases(instrument, source_phrase, roll_patter
         local augmented_phrase = duplicator.duplicate_phrases(instrument, source_phrase, 1)[1]
         utils.augment_phrase(augmentation, augmented_phrase)
         augmented_phrase.name = string.format("%s %s %s", source_phrase.name, "", augmentation)
+        utils.humanize_phrase(augmented_phrase)
+        utils.apply_decay_compensation(augmented_phrase)
         table.insert(roll_patterns, augmented_phrase)
     end
 end
@@ -325,6 +336,7 @@ function rollers.create_variation_phrases(instrument, basic_phrase, roll_pattern
     for _, division in ipairs({2, 3, 4, 6, 12, 16, 24, 32, 48, 64}) do
         local new_variation_phrase = rollers.create_beat_divisions_on_patterns(instrument, phrase_index, division)
         if new_variation_phrase then
+            utils.humanize_phrase(new_variation_phrase)
             table.insert(roll_patterns, new_variation_phrase)
             rollers.create_extended_variation_phrases(instrument, new_variation_phrase, roll_patterns)
         else
@@ -347,6 +359,8 @@ function rollers.create_extended_phrase(instrument, source_phrase)
     if extended_phrase and utils.multiply_phrase_length then
         extended_phrase = utils.multiply_phrase_length(extended_phrase, 2)
         extended_phrase.name = string.format("%s (2x)", source_phrase.name)
+        utils.humanize_phrase(extended_phrase)
+        utils.apply_decay_compensation(extended_phrase)
         return extended_phrase
     else
         print("Warning: Failed to extend phrase or multiply_phrase_length function not found")

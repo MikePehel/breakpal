@@ -165,10 +165,14 @@ function multis.create_multi_patterns(instrument, original_phrase, saved_labels)
                             utils.clear_phrase(base_phrase)
                             
                             apply_multi_pattern(base_phrase, pattern_variant.pattern, slice_set, steps)
+                            utils.humanize_phrase(base_phrase)
+                            utils.apply_decay_compensation(base_phrase)
                             table.insert(all_phrases, base_phrase)
                             
                             for _, division in ipairs({4, 6, 12, 16}) do
                                 local variation = create_timing_variation(label_instrument, base_phrase, division)
+                                utils.humanize_phrase(variation)
+                                utils.apply_decay_compensation(variation)
                                 table.insert(all_phrases, variation)
                             end
                         end

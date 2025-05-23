@@ -90,6 +90,8 @@ local function create_shuffle_pattern_set(instrument, original_phrase, pattern_n
     utils.clear_phrase(shuffle_phrase)
     
     apply_layered_patterns(shuffle_phrase, pattern_table, slice_indices)
+    utils.humanize_phrase(shuffle_phrase)
+    utils.apply_decay_compensation(shuffle_phrase)
     table.insert(new_phrases, shuffle_phrase)
     
 
@@ -97,6 +99,8 @@ local function create_shuffle_pattern_set(instrument, original_phrase, pattern_n
     
     for _, division in ipairs(divisions) do
         local variation = create_timing_variation(instrument, shuffle_phrase, division)
+        utils.humanize_phrase(variation)
+        utils.apply_decay_compensation(variation)
         table.insert(new_phrases, variation)
     end
     

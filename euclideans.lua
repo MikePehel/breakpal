@@ -138,6 +138,9 @@ local function create_base_euclidean_phrase(instrument, original_phrase, templat
 
     apply_euclidean_pattern(base_phrase, pattern_str, pair)
     
+    -- Apply decay compensation after pattern application
+    utils.apply_decay_compensation(base_phrase)
+    
     return base_phrase
 end
 
@@ -183,6 +186,7 @@ function euclideans.create_euclidean_patterns(instrument, original_phrase, saved
                             pair,
                             rotation
                         )
+                        utils.humanize_phrase(base_phrase)
                         table.insert(all_phrases, base_phrase)
                         current_phrase_count = current_phrase_count + 1
                         
