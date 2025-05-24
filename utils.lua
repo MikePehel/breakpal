@@ -26,22 +26,16 @@ function utils.generate_curve(curveType, start, endValue, intervals)
             value = start + math.log(1 + t) / math.log(2) * range
         elseif curveType == "exponential" then
             value = start + (math.exp(t) - 1) / (math.exp(1) - 1) * range
-        elseif curveType == "upParabola" then
-            value = start + 4 * range * (t - 0.5)^2
         elseif curveType == "downParabola" then
+            value = start + 4 * range * (t - 0.5)^2
+        elseif curveType == "upParabola" then
             value = endValue - 4 * range * (t - 0.5)^2
-        elseif curveType == "upCycloid" then
-            if t < 0.5 then
-                value = start + (1 - math.cos(t * math.pi)) * range / 2
-            else
-                value = endValue - (1 - math.cos((t - 0.5) * math.pi)) * range / 2
-            end
-        elseif curveType == "downCycloid" then
-            if t < 0.5 then
-                value = start + math.sin(t * math.pi) * range / 2
-            else
-                value = endValue - math.sin((t - 0.5) * math.pi) * range / 2
-            end
+        elseif curveType == "doublePeak" then
+            -- Create two peaks at t=0.25 and t=0.75, valleys at t=0, t=0.5, t=1
+            value = start + range * math.abs(math.sin(t * 2 * math.pi))
+        elseif curveType == "doubleValley" then
+            -- Create two valleys at t=0.25 and t=0.75, peaks at t=0, t=0.5, t=1  
+            value = start + range * (1 - math.abs(math.sin(t * 2 * math.pi)))
         else
             error("Invalid curve type")
         end
@@ -58,8 +52,8 @@ function utils.augment_phrase(augmentation, phrase)
     local start_value = 0x10  -- Start at 16 (hexadecimal)
     local increment = 0x10    -- Increment by 16 (hexadecimal)
 
-    if augmentation == "Upshift" or augmentation == "Downshift" or augmentation == "Stretch" then
-        local flag = (augmentation == "Upshift" and "0U") or (augmentation == "Downshift" and "0D") or "0S"
+    if augmentation == "Upshift" or augmentation == "Downshift" then
+        local flag = (augmentation == "Upshift" and "0U") or (augmentation == "Downshift" and "0D")
         local value = start_value
         local first_note_found = false
         for i = 1, phrase.number_of_lines do

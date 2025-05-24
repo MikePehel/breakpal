@@ -3,7 +3,7 @@ local vb = renoise.ViewBuilder()
 local duplicator = require("duplicator")
 local utils = require("utils")
 
-local augmentation_types = {"Upshift", "Downshift", "Stretch", "Staccato", "Backwards", "Reversal"}
+local augmentation_types = {"Upshift", "Downshift", "Staccato", "Backwards", "Reversal"}
 local curve_types = {"linear", "logarithmic", "exponential"}
 
 -- Helper functions

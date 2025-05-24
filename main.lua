@@ -12,6 +12,7 @@ local beats = require("beats")
 local euclideans = require("euclideans")
 local syntax = require("syntax")
 local breakpoints = require("breakpoints")
+local offsets = require("offsets")
 local utils = require('utils')
 
 local dialog = nil  -- Rename from dialog to main_dialog for clarity
@@ -213,6 +214,25 @@ local function create_beat_patterns(instrument_index)
   
   renoise.app():show_status("Beat patterns created successfully.")
 
+end
+
+local function create_sample_offset_patterns(instrument_index)
+  local song = renoise.song()
+  local instrument = song:instrument(instrument_index + 1)
+  local phrases = instrument.phrases
+  
+  if #phrases < 1 then
+    renoise.app():show_warning("No phrases found in the selected instrument.")
+    return
+  end
+  
+  local original_phrase = phrases[1]
+  local new_phrases, created_instruments = offsets.create_offset_patterns(instrument, original_phrase, labeler.saved_labels)
+  
+  if #new_phrases > 0 then
+    offsets.show_results(new_phrases, created_instruments)
+    renoise.app():show_status("Sample offset patterns created successfully.")
+  end
 end
 
 local function update_lock_state(dialog_vb)
@@ -956,6 +976,13 @@ local function show_dialog()
         notifier = function()
           local instrument_index = dialog_vb.views.instrument_index.value
           create_beat_patterns(instrument_index)
+        end
+      },
+      dialog_vb:button {
+        text = "Generate Sample Offsets",
+        notifier = function()
+          local instrument_index = dialog_vb.views.instrument_index.value
+          create_sample_offset_patterns(instrument_index)
         end
       }
     },
