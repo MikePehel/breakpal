@@ -208,8 +208,8 @@ utils.decay_compensation = {
     enabled = false,
     curve_type = "exponential", -- "exponential", "logarithmic", "linear"
     offset = 0, -- lines to skip before applying decay
-    min_volume = 0, -- minimum volume level (0-15)
-    max_volume = 15 -- starting volume level (0-15)
+    min_volume = 0, -- minimum volume level (0-255)
+    max_volume = 255 -- starting volume level (0-255)
 }
 
 function utils.humanize_phrase(phrase)
@@ -280,7 +280,7 @@ function utils.apply_decay_compensation(phrase)
         
         if start_line <= end_line then
             local distance = end_line - start_line + 1
-            local decay_curve = utils.generate_decay_curve(curve_type, max_vol, min_vol, distance)
+            local decay_curve = utils.generate_decay_curve(curve_type, min_vol, max_vol, distance)
             
             -- Apply the decay curve
             for j = 1, distance do
@@ -291,8 +291,8 @@ function utils.apply_decay_compensation(phrase)
                     
                     -- 0C effect with XY in amount_value
                     -- X=volume (0-F), Y=tick offset (0)
-                    effect_column.number_string = "0C"
-                    effect_column.amount_value = decay_curve[j] * 16  -- Convert to X0 format
+                    effect_column.number_string = "0O"
+                    effect_column.amount_value = decay_curve[j]  -- Use full 0-255 range
                 end
             end
         end
@@ -306,15 +306,15 @@ function utils.apply_decay_compensation(phrase)
         
         if start_line <= end_line then
             local distance = end_line - start_line + 1
-            local decay_curve = utils.generate_decay_curve(curve_type, max_vol, min_vol, distance)
+            local decay_curve = utils.generate_decay_curve(curve_type, min_vol, max_vol, distance)
             
             for j = 1, distance do
                 local target_line = start_line + j - 1
                 if target_line <= phrase.number_of_lines then
                     local line = phrase:line(target_line)
                     local effect_column = line:effect_column(1)
-                    effect_column.number_string = "0C"
-                    effect_column.amount_value = decay_curve[j] * 16  -- Convert to X0 format
+                    effect_column.number_string = "0O"
+                    effect_column.amount_value = decay_curve[j]  -- Use full 0-255 range
                 end
             end
         end
@@ -330,17 +330,15 @@ function utils.generate_decay_curve(curve_type, start_vol, end_vol, length)
         local value
         
         if curve_type == "linear" then
-            value = start_vol - (t * range)
+            value = start_vol + t * (end_vol - start_vol)
         elseif curve_type == "exponential" then
-            -- Fast decay at start, slow at end
-            value = end_vol + range * math.exp(-t * 3)
+            value = start_vol + (end_vol - start_vol) * (1 - math.exp(-t * 4))
         elseif curve_type == "logarithmic" then
-            -- Slow decay at start, fast at end
-            value = start_vol - range * (math.log(1 + t * 9) / math.log(10))
+            value = start_vol + (end_vol - start_vol) * (t * t)
         end
         
         -- Ensure value is within valid range and round to integer
-        value = math.floor(math.max(0, math.min(15, value)) + 0.5)
+        value = math.floor(math.max(0, math.min(255, value)) + 0.5)
         table.insert(curve, value)
     end
     

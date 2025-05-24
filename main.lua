@@ -14,9 +14,923 @@ local syntax = require("syntax")
 local breakpoints = require("breakpoints")
 local offsets = require("offsets")
 local utils = require('utils')
+local settings = require("settings")
 
 local dialog = nil  -- Rename from dialog to main_dialog for clarity
+local advanced_enabled = false
 
+-- Helper function for table operations
+function table.merge(t1, t2)
+    local result = {}
+    for k, v in pairs(t1) do result[k] = v end
+    for k, v in pairs(t2) do result[k] = v end
+    return result
+end
+
+function table.find(t, value)
+    for i, v in ipairs(t) do
+        if v == value then return i end
+    end
+    return nil
+end
+
+-- Advanced menu creation functions
+local function create_note_intervals_panel(dialog_vb)
+    return dialog_vb:column {
+        margin = 5,
+        style = "group",
+        width = 450,
+        dialog_vb:text {
+            text = "Note Intervals",
+            font = "bold"
+        },
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "interval_2",
+                    value = settings.get("note_intervals", "enabled")[2] or false,
+                    notifier = function(value)
+                        settings.set("note_intervals", "enabled", 
+                            table.merge(settings.get("note_intervals", "enabled"), {[2] = value}))
+                    end
+                },
+                dialog_vb:text { text = "2" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "interval_3",
+                    value = settings.get("note_intervals", "enabled")[3] or false,
+                    notifier = function(value)
+                        settings.set("note_intervals", "enabled",
+                            table.merge(settings.get("note_intervals", "enabled"), {[3] = value}))
+                    end
+                },
+                dialog_vb:text { text = "3" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "interval_4",
+                    value = settings.get("note_intervals", "enabled")[4] or false,
+                    notifier = function(value)
+                        settings.set("note_intervals", "enabled",
+                            table.merge(settings.get("note_intervals", "enabled"), {[4] = value}))
+                    end
+                },
+                dialog_vb:text { text = "4" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "interval_6",
+                    value = settings.get("note_intervals", "enabled")[6] or false,
+                    notifier = function(value)
+                        settings.set("note_intervals", "enabled",
+                            table.merge(settings.get("note_intervals", "enabled"), {[6] = value}))
+                    end
+                },
+                dialog_vb:text { text = "6" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "interval_8",
+                    value = settings.get("note_intervals", "enabled")[8] or false,
+                    notifier = function(value)
+                        settings.set("note_intervals", "enabled",
+                            table.merge(settings.get("note_intervals", "enabled"), {[8] = value}))
+                    end
+                },
+                dialog_vb:text { text = "8" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "interval_12",
+                    value = settings.get("note_intervals", "enabled")[12] or false,
+                    notifier = function(value)
+                        settings.set("note_intervals", "enabled",
+                            table.merge(settings.get("note_intervals", "enabled"), {[12] = value}))
+                    end
+                },
+                dialog_vb:text { text = "12" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "interval_16",
+                    value = settings.get("note_intervals", "enabled")[16] or false,
+                    notifier = function(value)
+                        settings.set("note_intervals", "enabled",
+                            table.merge(settings.get("note_intervals", "enabled"), {[16] = value}))
+                    end
+                },
+                dialog_vb:text { text = "16" }
+            }
+        },
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "interval_24",
+                    value = settings.get("note_intervals", "enabled")[24] or false,
+                    notifier = function(value)
+                        settings.set("note_intervals", "enabled",
+                            table.merge(settings.get("note_intervals", "enabled"), {[24] = value}))
+                    end
+                },
+                dialog_vb:text { text = "24" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "interval_32",
+                    value = settings.get("note_intervals", "enabled")[32] or false,
+                    notifier = function(value)
+                        settings.set("note_intervals", "enabled",
+                            table.merge(settings.get("note_intervals", "enabled"), {[32] = value}))
+                    end
+                },
+                dialog_vb:text { text = "32" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "interval_48",
+                    value = settings.get("note_intervals", "enabled")[48] or false,
+                    notifier = function(value)
+                        settings.set("note_intervals", "enabled",
+                            table.merge(settings.get("note_intervals", "enabled"), {[48] = value}))
+                    end
+                },
+                dialog_vb:text { text = "48" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "interval_64",
+                    value = settings.get("note_intervals", "enabled")[64] or false,
+                    notifier = function(value)
+                        settings.set("note_intervals", "enabled",
+                            table.merge(settings.get("note_intervals", "enabled"), {[64] = value}))
+                    end
+                },
+                dialog_vb:text { text = "64" }
+            }
+        }
+    }
+end
+
+local function create_pattern_options_panel(dialog_vb)
+    return dialog_vb:column {
+        margin = 5,
+        style = "group",
+        width = 450,
+        dialog_vb:text {
+            text = "Pattern Options",
+            font = "bold"
+        },
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:checkbox {
+                id = "include_inverse",
+                value = settings.get("pattern_options", "include_inverse"),
+                notifier = function(value)
+                    settings.set("pattern_options", "include_inverse", value)
+                end
+            },
+            dialog_vb:text { text = "Include Inverse Patterns" }
+        },
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:checkbox {
+                id = "include_2x_variants",
+                value = table.find(settings.get("pattern_options", "timing_multipliers") or {}, 2) ~= nil,
+                notifier = function(value)
+                    local multipliers = settings.get("pattern_options", "timing_multipliers") or {1}
+                    if value and not table.find(multipliers, 2) then
+                        table.insert(multipliers, 2)
+                    elseif not value then
+                        for i, mult in ipairs(multipliers) do
+                            if mult == 2 then
+                                table.remove(multipliers, i)
+                                break
+                            end
+                        end
+                    end
+                    settings.set("pattern_options", "timing_multipliers", multipliers)
+                end
+            },
+            dialog_vb:text { text = "Include Basic 2x Length Variants" }
+        }
+    }
+end
+
+local function create_beat_genres_panel(dialog_vb)
+    return dialog_vb:column {
+        margin = 5,
+        style = "group",
+        width = 450,
+        dialog_vb:text {
+            text = "Beat Genres",
+            font = "bold"
+        },
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "genre_latin",
+                    value = settings.get("beat_genres", "enabled")["l"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("beat_genres", "enabled")
+                        enabled["l"] = value
+                        settings.set("beat_genres", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Latin" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "genre_afro_cuban",
+                    value = settings.get("beat_genres", "enabled")["u"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("beat_genres", "enabled")
+                        enabled["u"] = value
+                        settings.set("beat_genres", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Afro-Cuban" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "genre_afrobeat",
+                    value = settings.get("beat_genres", "enabled")["a"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("beat_genres", "enabled")
+                        enabled["a"] = value
+                        settings.set("beat_genres", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Afrobeat" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "genre_jazz",
+                    value = settings.get("beat_genres", "enabled")["j"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("beat_genres", "enabled")
+                        enabled["j"] = value
+                        settings.set("beat_genres", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Jazz" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "genre_funk",
+                    value = settings.get("beat_genres", "enabled")["f"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("beat_genres", "enabled")
+                        enabled["f"] = value
+                        settings.set("beat_genres", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Funk" }
+            }
+        }
+    }
+end
+
+
+local function create_augmentations_panel(dialog_vb)
+    return dialog_vb:column {
+        margin = 5,
+        style = "group",
+        width = 450,
+        dialog_vb:text {
+            text = "Augmentations (for Rolls)",
+            font = "bold"
+        },
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "aug_upshift",
+                    value = settings.get("augmentations", "enabled")["Upshift"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("augmentations", "enabled")
+                        enabled["Upshift"] = value
+                        settings.set("augmentations", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Upshift" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "aug_downshift",
+                    value = settings.get("augmentations", "enabled")["Downshift"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("augmentations", "enabled")
+                        enabled["Downshift"] = value
+                        settings.set("augmentations", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Downshift" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "aug_stretch",
+                    value = settings.get("augmentations", "enabled")["Stretch"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("augmentations", "enabled")
+                        enabled["Stretch"] = value
+                        settings.set("augmentations", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Stretch" }
+            }
+        },
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "aug_staccato",
+                    value = settings.get("augmentations", "enabled")["Staccato"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("augmentations", "enabled")
+                        enabled["Staccato"] = value
+                        settings.set("augmentations", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Staccato" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "aug_backwards",
+                    value = settings.get("augmentations", "enabled")["Backwards"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("augmentations", "enabled")
+                        enabled["Backwards"] = value
+                        settings.set("augmentations", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Backwards" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "aug_reversal",
+                    value = settings.get("augmentations", "enabled")["Reversal"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("augmentations", "enabled")
+                        enabled["Reversal"] = value
+                        settings.set("augmentations", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Reversal" }
+            }
+        }
+    }
+end
+
+local function create_curves_panel(dialog_vb)
+    return dialog_vb:column {
+        margin = 5,
+        style = "group",
+        width = 450,
+        dialog_vb:text {
+            text = "Curves (for Rolls & Offsets)",
+            font = "bold"
+        },
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "curve_linear",
+                    value = settings.get("curves", "enabled")["linear"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("curves", "enabled")
+                        enabled["linear"] = value
+                        settings.set("curves", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Linear" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "curve_logarithmic",
+                    value = settings.get("curves", "enabled")["logarithmic"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("curves", "enabled")
+                        enabled["logarithmic"] = value
+                        settings.set("curves", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Log" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "curve_exponential",
+                    value = settings.get("curves", "enabled")["exponential"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("curves", "enabled")
+                        enabled["exponential"] = value
+                        settings.set("curves", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Exp" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "curve_upParabola",
+                    value = settings.get("curves", "enabled")["upParabola"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("curves", "enabled")
+                        enabled["upParabola"] = value
+                        settings.set("curves", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Up↗" }
+            }
+        },
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "curve_downParabola",
+                    value = settings.get("curves", "enabled")["downParabola"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("curves", "enabled")
+                        enabled["downParabola"] = value
+                        settings.set("curves", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Down↘" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "curve_doublePeak",
+                    value = settings.get("curves", "enabled")["doublePeak"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("curves", "enabled")
+                        enabled["doublePeak"] = value
+                        settings.set("curves", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Peak⌒" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "curve_doubleValley",
+                    value = settings.get("curves", "enabled")["doubleValley"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("curves", "enabled")
+                        enabled["doubleValley"] = value
+                        settings.set("curves", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Valley⌄" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "curves_include_inverse",
+                    value = settings.get("curves", "include_inverse"),
+                    notifier = function(value)
+                        settings.set("curves", "include_inverse", value)
+                    end
+                },
+                dialog_vb:text { text = "Include Inverse" }
+            }
+        }
+    }
+end
+
+local function create_euclidean_ranges_panel(dialog_vb)
+    return dialog_vb:column {
+        margin = 5,
+        style = "group",
+        width = 450,
+        dialog_vb:text {
+            text = "Euclidean Ranges",
+            font = "bold"
+        },
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:text { text = "Pulses:" },
+            dialog_vb:valuebox {
+                id = "euc_pulse_min",
+                min = 2,
+                max = 11,
+                value = settings.get("euclidean_ranges", "pulse_min"),
+                width = 60,
+                notifier = function(value)
+                    settings.set("euclidean_ranges", "pulse_min", value)
+                end
+            },
+            dialog_vb:text { text = "to" },
+            dialog_vb:valuebox {
+                id = "euc_pulse_max",
+                min = 2,
+                max = 11,
+                value = settings.get("euclidean_ranges", "pulse_max"),
+                width = 60,
+                notifier = function(value)
+                    settings.set("euclidean_ranges", "pulse_max", value)
+                end
+            },
+            dialog_vb:text { text = "  Steps:" },
+            dialog_vb:valuebox {
+                id = "euc_step_min",
+                min = 3,
+                max = 12,
+                value = settings.get("euclidean_ranges", "step_min"),
+                width = 60,
+                notifier = function(value)
+                    settings.set("euclidean_ranges", "step_min", value)
+                end
+            },
+            dialog_vb:text { text = "to" },
+            dialog_vb:valuebox {
+                id = "euc_step_max",
+                min = 3,
+                max = 12,
+                value = settings.get("euclidean_ranges", "step_max"),
+                width = 60,
+                notifier = function(value)
+                    settings.set("euclidean_ranges", "step_max", value)
+                end
+            }
+        },
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:text { text = "Max Rotations:" },
+            dialog_vb:valuebox {
+                id = "euc_max_rotations",
+                min = 1,
+                max = 24,
+                value = settings.get("euclidean_ranges", "max_rotations"),
+                width = 50,
+                notifier = function(value)
+                    settings.set("euclidean_ranges", "max_rotations", value)
+                end
+            }
+        },
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "euc_half_speed",
+                    value = settings.get("euclidean_ranges", "include_half_speed"),
+                    notifier = function(value)
+                        settings.set("euclidean_ranges", "include_half_speed", value)
+                    end
+                },
+                dialog_vb:text { text = "Half Speed" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "euc_double_speed",
+                    value = settings.get("euclidean_ranges", "include_double_speed"),
+                    notifier = function(value)
+                        settings.set("euclidean_ranges", "include_double_speed", value)
+                    end
+                },
+                dialog_vb:text { text = "Double Speed" }
+            }
+        }
+    }
+end
+
+local function create_shuffle_types_panel(dialog_vb)
+    return dialog_vb:column {
+        margin = 5,
+        style = "group",
+        width = 450,
+        dialog_vb:text {
+            text = "Shuffle Types",
+            font = "bold"
+        },
+        -- Row 1 (5 items)
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "shuffle_basic_snare_hat",
+                    value = settings.get("shuffle_types", "enabled")["basic_snare_hat_shuffle"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("shuffle_types", "enabled")
+                        enabled["basic_snare_hat_shuffle"] = value
+                        settings.set("shuffle_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Basic S+H" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "shuffle_syncopated_ghost",
+                    value = settings.get("shuffle_types", "enabled")["syncopated_ghost_shuffle"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("shuffle_types", "enabled")
+                        enabled["syncopated_ghost_shuffle"] = value
+                        settings.set("shuffle_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Sync Ghost" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "shuffle_hat_driven",
+                    value = settings.get("shuffle_types", "enabled")["hat_driven_shuffle"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("shuffle_types", "enabled")
+                        enabled["hat_driven_shuffle"] = value
+                        settings.set("shuffle_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Hat Driven" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "shuffle_complex",
+                    value = settings.get("shuffle_types", "enabled")["complex_shuffle"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("shuffle_types", "enabled")
+                        enabled["complex_shuffle"] = value
+                        settings.set("shuffle_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Complex" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "shuffle_triplet_feel",
+                    value = settings.get("shuffle_types", "enabled")["triplet_feel_shuffle"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("shuffle_types", "enabled")
+                        enabled["triplet_feel_shuffle"] = value
+                        settings.set("shuffle_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Triplet Feel" }
+            }
+        },
+        -- Row 2 (5 items)
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "shuffle_kick_hat",
+                    value = settings.get("shuffle_types", "enabled")["kick_hat_shuffle"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("shuffle_types", "enabled")
+                        enabled["kick_hat_shuffle"] = value
+                        settings.set("shuffle_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Kick Hat" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "shuffle_syncopated_kick",
+                    value = settings.get("shuffle_types", "enabled")["syncopated_kick_shuffle"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("shuffle_types", "enabled")
+                        enabled["syncopated_kick_shuffle"] = value
+                        settings.set("shuffle_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Sync Kick" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "shuffle_ghost_kick",
+                    value = settings.get("shuffle_types", "enabled")["ghost_kick_shuffle"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("shuffle_types", "enabled")
+                        enabled["ghost_kick_shuffle"] = value
+                        settings.set("shuffle_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Ghost Kick" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "shuffle_rolling_hat",
+                    value = settings.get("shuffle_types", "enabled")["rolling_hat_shuffle"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("shuffle_types", "enabled")
+                        enabled["rolling_hat_shuffle"] = value
+                        settings.set("shuffle_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Rolling Hat" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "shuffle_interplay",
+                    value = settings.get("shuffle_types", "enabled")["interplay_shuffle"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("shuffle_types", "enabled")
+                        enabled["interplay_shuffle"] = value
+                        settings.set("shuffle_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Interplay" }
+            }
+        },
+        -- Row 3 (5 items)
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "shuffle_two_step",
+                    value = settings.get("shuffle_types", "enabled")["two_step_shuffle"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("shuffle_types", "enabled")
+                        enabled["two_step_shuffle"] = value
+                        settings.set("shuffle_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Two Step" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "shuffle_sync_kick_snare",
+                    value = settings.get("shuffle_types", "enabled")["syncopated_kick_snare_shuffle"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("shuffle_types", "enabled")
+                        enabled["syncopated_kick_snare_shuffle"] = value
+                        settings.set("shuffle_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Sync K+S" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "shuffle_rolling_snare",
+                    value = settings.get("shuffle_types", "enabled")["rolling_snare_shuffle"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("shuffle_types", "enabled")
+                        enabled["rolling_snare_shuffle"] = value
+                        settings.set("shuffle_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Roll Snare" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "shuffle_complex_kick",
+                    value = settings.get("shuffle_types", "enabled")["complex_kick_shuffle"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("shuffle_types", "enabled")
+                        enabled["complex_kick_shuffle"] = value
+                        settings.set("shuffle_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Complex K" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "shuffle_ghost_groove",
+                    value = settings.get("shuffle_types", "enabled")["ghost_groove_shuffle"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("shuffle_types", "enabled")
+                        enabled["ghost_groove_shuffle"] = value
+                        settings.set("shuffle_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Ghost Grv" }
+            }
+        }
+    }
+end
+
+local function create_extras_panel(dialog_vb)
+    return dialog_vb:column {
+        margin = 5,
+        style = "group",
+        width = 450,
+        dialog_vb:text {
+            text = "Complex Roll Types",
+            font = "bold"
+        },
+        dialog_vb:row {
+            spacing = 5,
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "extras_paradiddles",
+                    value = settings.get("extras_types", "enabled")["p"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("extras_types", "enabled")
+                        enabled["p"] = value
+                        settings.set("extras_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Paradiddles" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "extras_crossovers",
+                    value = settings.get("extras_types", "enabled")["c"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("extras_types", "enabled")
+                        enabled["c"] = value
+                        settings.set("extras_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Crossovers" }
+            },
+            dialog_vb:row {
+                dialog_vb:checkbox {
+                    id = "extras_complex_rolls",
+                    value = settings.get("extras_types", "enabled")["r"] or false,
+                    notifier = function(value)
+                        local enabled = settings.get("extras_types", "enabled")
+                        enabled["r"] = value
+                        settings.set("extras_types", "enabled", enabled)
+                    end
+                },
+                dialog_vb:text { text = "Complex Rolls" }
+            }
+        }
+    }
+end
+
+local function create_advanced_panel(dialog_vb)
+    return dialog_vb:column {
+        id = "advanced_panel",
+        visible = advanced_enabled,  -- Set initial visibility based on state
+        margin = 10,
+        spacing = 5,
+        style = "border",
+        dialog_vb:text {
+            text = "Advanced Options",
+            font = "big",
+            style = "strong"
+        },
+        -- Row 1: Note Intervals + Pattern Options
+        dialog_vb:row {
+            spacing = 10,
+            dialog_vb:column {
+                width = 450,
+                create_note_intervals_panel(dialog_vb)
+            },
+            dialog_vb:column {
+                width = 450,
+                create_pattern_options_panel(dialog_vb)
+            }
+        },
+        -- Row 2: Augmentations + Curves  
+        dialog_vb:row {
+            spacing = 10,
+            dialog_vb:column {
+                width = 450,
+                create_augmentations_panel(dialog_vb)
+            },
+            dialog_vb:column {
+                width = 450,
+                create_curves_panel(dialog_vb)
+            }
+        },
+        -- Row 3: Shuffle Types + Euclidean Ranges
+        dialog_vb:row {
+            spacing = 10,
+            dialog_vb:column {
+                width = 450,
+                create_shuffle_types_panel(dialog_vb)
+            },
+            dialog_vb:column {
+                width = 450,
+                create_euclidean_ranges_panel(dialog_vb)
+            }
+        },
+        -- Row 4: Beat Genres + Extras
+        dialog_vb:row {
+            spacing = 10,
+            dialog_vb:column {
+                width = 450,
+                create_beat_genres_panel(dialog_vb)
+            },
+            dialog_vb:column {
+                width = 450,
+                create_extras_panel(dialog_vb)
+            }
+        },
+        dialog_vb:horizontal_aligner {
+            mode = "center",
+            dialog_vb:row {
+                spacing = 10,
+                dialog_vb:button {
+                    text = "Reset to Defaults",
+                    notifier = function()
+                        if settings and settings.reset_to_defaults then
+                            settings.reset_to_defaults()
+                            renoise.app():show_status("Advanced settings reset to defaults")
+                        end
+                    end
+                },
+                dialog_vb:button {
+                    text = "Apply Settings",
+                    notifier = function()
+                        renoise.app():show_status("Advanced settings applied")
+                    end
+                }
+            }
+        }
+    }
+end
 
 local function reopen_main_dialog()
     if not dialog or not dialog.visible then
@@ -910,7 +1824,7 @@ local function show_dialog()
       dialog_vb:valuebox {
         id = "decay_min_volume",
         min = 0,
-        max = 15,  -- Changed from 128
+        max = 255,  -- Changed from 128
         value = utils.decay_compensation.min_volume,
         width = 45,
         notifier = function(value)
@@ -919,6 +1833,26 @@ local function show_dialog()
       }
     },
     dialog_vb:vertical_aligner { height = 5 },
+    dialog_vb:vertical_aligner { height = 10 },
+    dialog_vb:row {
+      dialog_vb:checkbox {
+        id = "advanced_toggle",
+        value = advanced_enabled,
+        notifier = function(value)
+          advanced_enabled = value
+          -- Toggle visibility of advanced panel
+          if dialog_vb.views.advanced_panel then
+            dialog_vb.views.advanced_panel.visible = value
+          end
+        end
+      },
+      dialog_vb:text {
+        text = "Advanced Options",
+        font = "bold"
+      }
+    },
+    -- Advanced panel - always present but visibility controlled
+    create_advanced_panel(dialog_vb),
     dialog_vb:vertical_aligner { height = 10 },
     dialog_vb:row {
       spacing = 5,

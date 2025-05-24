@@ -2,9 +2,8 @@ local rollers = {}
 local vb = renoise.ViewBuilder()
 local duplicator = require("duplicator")
 local utils = require("utils")
-
-local augmentation_types = {"Upshift", "Downshift", "Staccato", "Backwards", "Reversal"}
-local curve_types = {"linear", "logarithmic", "exponential"}
+local config = require("config")
+local settings = require("settings")
 
 -- Helper functions
 local function note_value_to_string(note_value)
@@ -105,7 +104,7 @@ function rollers.create_alternating_patterns(instrument, original_phrase, saved_
         print("LABEL FOR DUPLIACTION")
         print(label)
         for i, perm in ipairs(label_perms) do
-            for _, division in ipairs({2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64}) do
+            for _, division in ipairs(settings.get_enabled_note_intervals()) do
                 local new_instrument = duplicator.duplicate_instrument(label..i, division)
                 local current_index = song.selected_instrument_index                
                 print("CURRENT INDEX")
@@ -266,7 +265,7 @@ function rollers.create_2x_phrase(instrument, basic_phrase)
 end
 
 function rollers.create_curve_phrases(instrument, basic_2x_phrase, roll_patterns, label)
-    for _, curve_type in ipairs(curve_types) do
+    for _, curve_type in ipairs(settings.get_enabled_curves()) do
         local curve_phrase = rollers.create_curve_phrase(instrument, basic_2x_phrase, curve_type, false)
         if curve_phrase then
             table.insert(roll_patterns, curve_phrase)
@@ -322,7 +321,7 @@ function rollers.apply_volume_curve(phrase, volume_curve)
 end
 
 function rollers.create_augmented_phrases(instrument, source_phrase, roll_patterns, name_suffix)
-    for _, augmentation in ipairs(augmentation_types) do
+    for _, augmentation in ipairs(settings.get_enabled_augmentations()) do
         local augmented_phrase = duplicator.duplicate_phrases(instrument, source_phrase, 1)[1]
         utils.augment_phrase(augmentation, augmented_phrase)
         augmented_phrase.name = string.format("%s %s %s", source_phrase.name, "", augmentation)
@@ -333,7 +332,7 @@ function rollers.create_augmented_phrases(instrument, source_phrase, roll_patter
 end
 
 function rollers.create_variation_phrases(instrument, basic_phrase, roll_patterns, phrase_index)
-    for _, division in ipairs({2, 3, 4, 6, 12, 16, 24, 32, 48, 64}) do
+    for _, division in ipairs(settings.get_enabled_note_intervals()) do
         local new_variation_phrase = rollers.create_beat_divisions_on_patterns(instrument, phrase_index, division)
         if new_variation_phrase then
             utils.humanize_phrase(new_variation_phrase)

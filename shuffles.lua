@@ -2,6 +2,8 @@ local shuffles = {}
 local vb = renoise.ViewBuilder()
 local duplicator = require("duplicator")
 local utils = require("utils")
+local config = require("config")
+local settings = require("settings")
 
 local function get_slice_indices(saved_labels, type)
     local indices = {}
@@ -95,7 +97,7 @@ local function create_shuffle_pattern_set(instrument, original_phrase, pattern_n
     table.insert(new_phrases, shuffle_phrase)
     
 
-    local divisions = {4, 6, 8, 12, 16}
+    local divisions = settings.get("timing_divisions", "standard")
     
     for _, division in ipairs(divisions) do
         local variation = create_timing_variation(instrument, shuffle_phrase, division)
@@ -127,23 +129,15 @@ function shuffles.create_shuffles(instrument, original_phrase, saved_labels)
         return all_phrases
     end
     
-    local shuffle_types = {
-        { name = "Basic Snare Hat", pattern = templates.basic_snare_hat_shuffle },
-        { name = "Syncopated Ghost", pattern = templates.syncopated_ghost_shuffle },
-        { name = "Hat Driven", pattern = templates.hat_driven_shuffle },
-        { name = "Complex", pattern = templates.complex_shuffle },
-        { name = "Triplet Feel", pattern = templates.triplet_feel_shuffle },
-        { name = "Basic Kick Hat", pattern = templates.kick_hat_shuffle },
-        { name = "Syncopated Kick", pattern = templates.syncopated_kick_shuffle },
-        { name = "Ghost Kick", pattern = templates.ghost_kick_shuffle },
-        { name = "Rolling Hat", pattern = templates.rolling_hat_shuffle },
-        { name = "Kick Hat Interplay", pattern = templates.interplay_shuffle },
-        { name = "Two Step", pattern = templates.two_step_shuffle },
-        { name = "Syncopated Kick Snare", pattern = templates.syncopated_kick_snare_shuffle },
-        { name = "Rolling Snare", pattern = templates.rolling_snare_shuffle },
-        { name = "Complex Kick", pattern = templates.complex_kick_shuffle },
-        { name = "Ghost Groove", pattern = templates.ghost_groove_shuffle }
-    }
+    local shuffle_types = {}
+    for _, shuffle_config in ipairs(settings.get_enabled_shuffle_types()) do
+        if templates[shuffle_config.template] then
+            table.insert(shuffle_types, {
+                name = shuffle_config.name,
+                pattern = templates[shuffle_config.template]
+            })
+        end
+    end
     
     for _, shuffle_type in ipairs(shuffle_types) do
         local new_phrases = create_shuffle_pattern_set(

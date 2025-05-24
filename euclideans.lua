@@ -4,6 +4,8 @@ local vb = renoise.ViewBuilder()
 local duplicator = require("duplicator")
 local utils = require("utils")
 local templates = require("templates")
+local config = require("config")
+local settings = require("settings")
 
 
 local function rotate_pattern(pattern, n)
@@ -58,24 +60,27 @@ local function create_instrument_for_label(base_instrument, label, index)
 end
 
 local function sort_euclidean_templates()
+    local range = settings.get_euclidean_range()
+    local euclidean_patterns = templates.get_euclidean_patterns(
+        range.pulse_min,
+        range.pulse_max,
+        range.step_min,
+        range.step_max
+    )
+    
     local sorted = {}
-    for name, pattern in pairs(templates) do
-        if name:match("^_%d+_%d+euclidean$") then
-            table.insert(sorted, {name = name, pattern = pattern})
-        end
+    for name, pattern in pairs(euclidean_patterns) do
+        table.insert(sorted, {name = name, pattern = pattern})
     end
     
     table.sort(sorted, function(a, b)
-        local a_first, a_second = a.name:match("_(%d+)_(%d+)euclidean")
-        local b_first, b_second = b.name:match("_(%d+)_(%d+)euclidean")
+        local a_meta = templates.metadata[a.name]
+        local b_meta = templates.metadata[b.name]
         
-        a_first, a_second = tonumber(a_first), tonumber(a_second)
-        b_first, b_second = tonumber(b_first), tonumber(b_second)
-        
-        if a_first == b_first then
-            return a_second < b_second
+        if a_meta.pulses == b_meta.pulses then
+            return a_meta.steps < b_meta.steps
         end
-        return a_first < b_first
+        return a_meta.pulses < b_meta.pulses
     end)
     
     return sorted
@@ -207,24 +212,24 @@ function euclideans.create_euclidean_patterns(instrument, original_phrase, saved
         original_instruments[key] = instr
     end
     
-    for key, orig_instr in pairs(original_instruments) do
-        local half_instr = create_timing_variation_instrument(
-            instrument, 
-            orig_instr, 
-            " - Half", 
-            0.5
-        )
-        instruments_created[key .. "_half"] = half_instr
+    local timing_configs = {}
+    if settings.get("euclidean_ranges", "include_half_speed") then
+        table.insert(timing_configs, {suffix = " - Half", multiplier = 0.5, key_suffix = "_half"})
     end
-    
-    for key, orig_instr in pairs(original_instruments) do
-        local double_instr = create_timing_variation_instrument(
-            instrument, 
-            orig_instr, 
-            " - 2X", 
-            2
-        )
-        instruments_created[key .. "_double"] = double_instr
+    if settings.get("euclidean_ranges", "include_double_speed") then
+        table.insert(timing_configs, {suffix = " - 2X", multiplier = 2, key_suffix = "_double"})
+    end
+
+    for _, timing_config in ipairs(timing_configs) do
+        for key, orig_instr in pairs(original_instruments) do
+            local variation_instr = create_timing_variation_instrument(
+                instrument, 
+                orig_instr, 
+                timing_config.suffix, 
+                timing_config.multiplier
+            )
+            instruments_created[key .. timing_config.key_suffix] = variation_instr
+        end
     end
     
     return all_phrases, instruments_created

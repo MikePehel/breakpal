@@ -3,10 +3,30 @@ local offsets = {}
 local vb = renoise.ViewBuilder()
 local duplicator = require("duplicator")
 local utils = require("utils")
+local config = require("config")
+local settings = require("settings")
 
-local curve_types = {"linear", "logarithmic", "exponential"}
-local advanced_curve_types = {"upParabola", "downParabola", "doublePeak", "doubleValley"}
-local timing_divisions = {4, 6, 8, 12, 16}
+local function get_basic_curves()
+    local basic = {}
+    local enabled_curves = settings.get_enabled_curves()
+    for _, curve in ipairs(enabled_curves) do
+        if curve == "linear" or curve == "logarithmic" or curve == "exponential" then
+            table.insert(basic, curve)
+        end
+    end
+    return basic
+end
+
+local function get_advanced_curves()
+    local advanced = {}
+    local enabled_curves = settings.get_enabled_curves()
+    for _, curve in ipairs(enabled_curves) do
+        if curve ~= "linear" and curve ~= "logarithmic" and curve ~= "exponential" then
+            table.insert(advanced, curve)
+        end
+    end
+    return advanced
+end
 
 local function create_instrument_for_label(base_instrument, label)
     local song = renoise.song()
@@ -147,14 +167,14 @@ function offsets.create_offset_patterns(instrument, original_phrase, saved_label
         instruments_created[label] = label_instrument
         
         for _, slice in ipairs(slices) do
-            for _, curve_type in ipairs(curve_types) do
+            for _, curve_type in ipairs(get_basic_curves()) do
                 -- Create normal curves
                 -- Create base phrase (32 lines, every 2 lines)
                 local base_phrase = create_base_offset_phrase(label_instrument, original_phrase, slice, curve_type, false)
                 table.insert(all_phrases, base_phrase)
                 
                 -- Create timing variations for base phrase
-                for _, division in ipairs(timing_divisions) do
+                for _, division in ipairs(settings.get("timing_divisions", "standard")) do
                     local variation = create_timing_variation(label_instrument, base_phrase, division)
                     table.insert(all_phrases, variation)
                 end
@@ -164,7 +184,7 @@ function offsets.create_offset_patterns(instrument, original_phrase, saved_label
                 table.insert(all_phrases, phrase_2x)
                 
                 -- Create timing variations for 2x phrase
-                for _, division in ipairs(timing_divisions) do
+                for _, division in ipairs(settings.get("timing_divisions", "standard")) do
                     local variation_2x = create_timing_variation(label_instrument, phrase_2x, division)
                     table.insert(all_phrases, variation_2x)
                 end
@@ -175,7 +195,7 @@ function offsets.create_offset_patterns(instrument, original_phrase, saved_label
                 table.insert(all_phrases, inverse_base_phrase)
                 
                 -- Create timing variations for inverse base phrase
-                for _, division in ipairs(timing_divisions) do
+                for _, division in ipairs(settings.get("timing_divisions", "standard")) do
                     local inverse_variation = create_timing_variation(label_instrument, inverse_base_phrase, division)
                     table.insert(all_phrases, inverse_variation)
                 end
@@ -185,7 +205,7 @@ function offsets.create_offset_patterns(instrument, original_phrase, saved_label
                 table.insert(all_phrases, inverse_phrase_2x)
                 
                 -- Create timing variations for inverse 2x phrase
-                for _, division in ipairs(timing_divisions) do
+                for _, division in ipairs(settings.get("timing_divisions", "standard")) do
                     local inverse_variation_2x = create_timing_variation(label_instrument, inverse_phrase_2x, division)
                     table.insert(all_phrases, inverse_variation_2x)
                 end
@@ -199,13 +219,13 @@ function offsets.create_offset_patterns(instrument, original_phrase, saved_label
         instruments_created[label .. "_Advanced"] = advanced_instrument
         
         for _, slice in ipairs(slices) do
-            for _, curve_type in ipairs(advanced_curve_types) do
+            for _, curve_type in ipairs(get_advanced_curves()) do
                 -- Create base phrase (32 lines, every 2 lines)
                 local base_phrase = create_base_offset_phrase(advanced_instrument, original_phrase, slice, curve_type, false)
                 table.insert(all_phrases, base_phrase)
                 
                 -- Create timing variations for base phrase
-                for _, division in ipairs(timing_divisions) do
+                for _, division in ipairs(settings.get("timing_divisions", "standard")) do
                     local variation = create_timing_variation(advanced_instrument, base_phrase, division)
                     table.insert(all_phrases, variation)
                 end
@@ -215,7 +235,7 @@ function offsets.create_offset_patterns(instrument, original_phrase, saved_label
                 table.insert(all_phrases, phrase_2x)
                 
                 -- Create timing variations for 2x phrase
-                for _, division in ipairs(timing_divisions) do
+                for _, division in ipairs(settings.get("timing_divisions", "standard")) do
                     local variation_2x = create_timing_variation(advanced_instrument, phrase_2x, division)
                     table.insert(all_phrases, variation_2x)
                 end
@@ -240,8 +260,8 @@ function offsets.show_results(new_phrases, created_instruments)
         info = info .. string.format("Total patterns created: %d\n", #new_phrases)
         info = info .. string.format("Patterns per slice: Base + 2x + timing variations (1/4, 1/6, 1/8, 1/12, 1/16 for each)\n")
         info = info .. string.format("Each pattern created in normal and inverse versions\n")
-        info = info .. string.format("Basic Curve types: %s\n\n", table.concat(curve_types, ", "))
-        info = info .. string.format("Advanced curve types: %s\n\n", table.concat(advanced_curve_types, ", "))
+        info = info .. string.format("Basic Curve types: %s\n\n", table.concat(get_basic_curves(), ", "))
+        info = info .. string.format("Advanced curve types: %s\n\n", table.concat(get_advanced_curves(), ", "))
     end
     
     info = info .. "Pattern Details:\n"

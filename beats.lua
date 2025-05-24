@@ -4,18 +4,12 @@ local vb = renoise.ViewBuilder()
 local duplicator = require("duplicator")
 local utils = require("utils")
 local templates = require("templates")
+local config = require("config")
+local settings = require('settings')
 
 local function create_instrument_for_flag(base_instrument, flag)
     local song = renoise.song()
-    local flag_names = {
-        l = "Latin",
-        u = "Afro Cuban",
-        a = "Afrobeat",
-        j = "Jazz",
-        f = "Funk"
-    }
-    
-    local name = string.format("%s Beat Patterns", flag_names[flag] or "Generic")
+    local name = string.format("%s Beat Patterns", config.BEAT_GENRES[flag] or "Generic")
     local new_instrument = duplicator.duplicate_instrument(name, 0)
     
     while #new_instrument.phrases > 0 do
@@ -244,9 +238,12 @@ function beats.create_beat_patterns(instrument, original_phrase, saved_labels)
     local all_phrases = {}
     local instruments_created = {}
     
-    for name, pattern in pairs(templates) do
-        local flag = string.match(name, "_([luajf])_")
-        if flag then
+    local beat_patterns = templates.get_beat_patterns(settings.get_enabled_beat_genres())
+    
+    for name, pattern in pairs(beat_patterns) do
+        local meta = templates.metadata[name]
+        if meta and meta.genre then
+            local flag = meta.genre
             local steps = pattern.steps or 16
             
             local flag_instrument = instruments_created[flag]
@@ -273,7 +270,7 @@ function beats.create_beat_patterns(instrument, original_phrase, saved_labels)
                 utils.humanize_phrase(base_phrase)
                 table.insert(all_phrases, base_phrase)
                 
-                for _, division in ipairs({4, 6, 12, 16}) do
+                for _, division in ipairs(settings.get("timing_divisions", "standard")) do
                     local variation = create_timing_variation(flag_instrument, base_phrase, division)
                     utils.humanize_phrase(variation)
                     table.insert(all_phrases, variation)

@@ -4,6 +4,8 @@ local vb = renoise.ViewBuilder()
 local duplicator = require("duplicator")
 local utils = require("utils")
 local templates = require("templates")
+local config = require("config")
+local settings = require("settings")
 
 local function create_instrument_for_label_and_flag(base_instrument, label, flag_name)
     local song = renoise.song()
@@ -169,7 +171,7 @@ local function create_pattern_set(instrument, original_phrase, template_name, pa
             utils.apply_decay_compensation(base_phrase)
             table.insert(new_phrases, base_phrase)
             
-            local divisions = {4, 6, 12, 16}
+            local divisions = settings.get("timing_divisions", "standard")
             for _, division in ipairs(divisions) do
                 local variation = create_timing_variation(instrument, base_phrase, division)
                 utils.humanize_phrase(variation)
@@ -191,7 +193,7 @@ local function create_pattern_set(instrument, original_phrase, template_name, pa
             utils.apply_decay_compensation(base_phrase)
             table.insert(new_phrases, base_phrase)
             
-            local divisions = {4, 6, 8, 12, 16}
+            local divisions = settings.get("timing_divisions", "standard")
             for _, division in ipairs(divisions) do
                 local variation = create_timing_variation(instrument, base_phrase, division)
                 utils.humanize_phrase(variation)
@@ -214,11 +216,7 @@ function extras.create_pattern_variations(instrument, original_phrase, saved_lab
         r = {}  -- Complex Rolls
     }
 
-    local flag_names = {
-        p = "Paradiddles",
-        c = "Crossovers",
-        r = "Complex Rolls",
-    }
+    local flag_names = config.EXTRAS_TYPES
     
     local unique_labels = {}
     local seen = {}
@@ -229,12 +227,12 @@ function extras.create_pattern_variations(instrument, original_phrase, saved_lab
         end
     end
     
-    for name, pattern in pairs(templates) do
-        if string.find(name, "_p_") or
-           string.find(name, "_c_") or
-           string.find(name, "_r_") then
-
-            local flag = string.match(name, "_(%w)_")
+    local extras_patterns = templates.get_extras_patterns(settings.get_enabled_extras_types())
+    
+    for name, pattern in pairs(extras_patterns) do
+        local meta = templates.metadata[name]
+        if meta and meta.category then
+            local flag = meta.category
 
             for _, label in ipairs(unique_labels) do
                 local pairs = get_roll_ghost_pairs(saved_labels, label)

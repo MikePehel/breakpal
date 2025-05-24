@@ -4,6 +4,8 @@ local vb = renoise.ViewBuilder()
 local duplicator = require("duplicator")
 local utils = require("utils")
 local templates = require("templates")
+local config = require("config")
+local settings = require("settings")
 
 local function create_instrument_for_label(base_instrument, label)
     local song = renoise.song()
@@ -133,48 +135,48 @@ function multis.create_multi_patterns(instrument, original_phrase, saved_labels)
         end
     end
     
-    for name, pattern in pairs(templates) do
-        if string.find(name, "_m_") then
-            local steps = pattern.steps or 16
+    local multi_patterns = templates.get_multi_patterns()
+    
+    for name, pattern in pairs(multi_patterns) do
+        local steps = pattern.steps or 16
             
-            local patterns_to_process = {
-                {pattern = pattern, name_prefix = ""},
-                {pattern = create_inverted_pattern(pattern), name_prefix = "Inverted "}
-            }
-            
-            for label, slices in pairs(label_slices) do
-                if #slices.roll >= 2 and #slices.ghost >= 2 then
-                    local label_instrument = instruments_created[label]
-                    if not label_instrument then
-                        label_instrument = create_instrument_for_label(instrument, label)
-                        instruments_created[label] = label_instrument
-                    end
-                    
-                    local variations = create_slice_variations(slices.roll, slices.ghost)
-                    
-                    for _, pattern_variant in ipairs(patterns_to_process) do
-                        for var_idx, slice_set in ipairs(variations) do
-                            local base_phrase = label_instrument:insert_phrase_at(#label_instrument.phrases + 1)
-                            base_phrase:copy_from(original_phrase)
-                            base_phrase.number_of_lines = steps * 4
-                            base_phrase.name = string.format("%s%s %s Var %d", 
-                                pattern_variant.name_prefix, 
-                                name, 
-                                label, 
-                                var_idx)
-                            utils.clear_phrase(base_phrase)
-                            
-                            apply_multi_pattern(base_phrase, pattern_variant.pattern, slice_set, steps)
-                            utils.humanize_phrase(base_phrase)
-                            utils.apply_decay_compensation(base_phrase)
-                            table.insert(all_phrases, base_phrase)
-                            
-                            for _, division in ipairs({4, 6, 12, 16}) do
-                                local variation = create_timing_variation(label_instrument, base_phrase, division)
-                                utils.humanize_phrase(variation)
-                                utils.apply_decay_compensation(variation)
-                                table.insert(all_phrases, variation)
-                            end
+        local patterns_to_process = {
+            {pattern = pattern, name_prefix = ""},
+            {pattern = create_inverted_pattern(pattern), name_prefix = "Inverted "}
+        }
+        
+        for label, slices in pairs(label_slices) do
+            if #slices.roll >= 2 and #slices.ghost >= 2 then
+                local label_instrument = instruments_created[label]
+                if not label_instrument then
+                    label_instrument = create_instrument_for_label(instrument, label)
+                    instruments_created[label] = label_instrument
+                end
+                
+                local variations = create_slice_variations(slices.roll, slices.ghost)
+                
+                for _, pattern_variant in ipairs(patterns_to_process) do
+                    for var_idx, slice_set in ipairs(variations) do
+                        local base_phrase = label_instrument:insert_phrase_at(#label_instrument.phrases + 1)
+                        base_phrase:copy_from(original_phrase)
+                        base_phrase.number_of_lines = steps * 4
+                        base_phrase.name = string.format("%s%s %s Var %d", 
+                            pattern_variant.name_prefix, 
+                            name, 
+                            label, 
+                            var_idx)
+                        utils.clear_phrase(base_phrase)
+                        
+                        apply_multi_pattern(base_phrase, pattern_variant.pattern, slice_set, steps)
+                        utils.humanize_phrase(base_phrase)
+                        utils.apply_decay_compensation(base_phrase)
+                        table.insert(all_phrases, base_phrase)
+                        
+                            for _, division in ipairs(settings.get("timing_divisions", "standard")) do
+                            local variation = create_timing_variation(label_instrument, base_phrase, division)
+                            utils.humanize_phrase(variation)
+                            utils.apply_decay_compensation(variation)
+                            table.insert(all_phrases, variation)
                         end
                     end
                 end
